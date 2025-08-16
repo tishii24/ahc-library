@@ -26,8 +26,8 @@ where
     G: NeighborGenerator<N>,
     N: Neighbors,
 {
-    state: <N::ND as NeighborDelegate>::State,
-    env: <N::ND as NeighborDelegate>::Env,
+    state: <N::H as NeighborHandler>::State,
+    env: <N::H as NeighborHandler>::Env,
     mutator: Mutator<G, N>,
     config: AnnealerConfig,
 }
@@ -38,8 +38,8 @@ where
     N: Neighbors,
 {
     fn new(
-        state: <N::ND as NeighborDelegate>::State,
-        env: <N::ND as NeighborDelegate>::Env,
+        state: <N::H as NeighborHandler>::State,
+        env: <N::H as NeighborHandler>::Env,
         mutator: Mutator<G, N>,
         config: AnnealerConfig,
     ) -> Annealer<N, G> {
@@ -86,7 +86,7 @@ struct AnnealerConfig {
     log_interval: usize,
 }
 
-trait NeighborDelegate {
+trait NeighborHandler {
     type State: State<Self::Env>;
     type Env: Env;
 
@@ -96,15 +96,15 @@ trait NeighborDelegate {
 }
 
 trait Neighbors {
-    type ND: NeighborDelegate;
-    fn generate(&self) -> Self::ND;
+    type H: NeighborHandler;
+    fn generate(&self) -> Self::H;
 }
 
 trait NeighborGenerator<N>
 where
     N: Neighbors,
 {
-    fn generate(&self) -> N::ND;
+    fn generate(&self) -> N::H;
 }
 
 struct WeightedNeighborGenerator<N>
@@ -127,7 +127,7 @@ impl<N> NeighborGenerator<N> for WeightedNeighborGenerator<N>
 where
     N: Neighbors,
 {
-    fn generate(&self) -> N::ND {
+    fn generate(&self) -> N::H {
         // TODO: improve
         self.neighbors[0].0.generate()
     }
@@ -139,7 +139,7 @@ where
     N: Neighbors,
 {
     generator: G,
-    last_neighbor: Option<N::ND>,
+    last_neighbor: Option<N::H>,
 }
 
 impl<G, N> Mutator<G, N>
@@ -156,8 +156,8 @@ where
 
     fn commit(
         &mut self,
-        state: &mut <N::ND as NeighborDelegate>::State,
-        env: &<N::ND as NeighborDelegate>::Env,
+        state: &mut <N::H as NeighborHandler>::State,
+        env: &<N::H as NeighborHandler>::Env,
     ) {
         let n = self.generator.generate();
         n.commit(state, env);
@@ -166,8 +166,8 @@ where
 
     fn revert(
         &mut self,
-        state: &mut <N::ND as NeighborDelegate>::State,
-        env: &<N::ND as NeighborDelegate>::Env,
+        state: &mut <N::H as NeighborHandler>::State,
+        env: &<N::H as NeighborHandler>::Env,
     ) {
         let last_neighbor = self
             .last_neighbor
@@ -187,11 +187,11 @@ where
 
 macro_rules! neighbor_impl {
     ($state_type:ident, $env_type:ident, $($variant:ident),+) => {
-        enum NeighborImpl {
+        enum NeighborHandlerImpl {
             $($variant($variant),)+
         }
 
-        impl NeighborDelegate for NeighborImpl {
+        impl NeighborHandler for NeighborHandlerImpl {
             type Env = $env_type;
             type State = $state_type;
 
@@ -214,16 +214,16 @@ macro_rules! neighbor_impl {
             }
         }
 
-        enum NeighborEnum {
+        enum Neighbor {
             $($variant,)+
         }
 
-        impl Neighbors for NeighborEnum {
-            type ND = NeighborImpl;
+        impl Neighbors for Neighbor {
+            type H = NeighborHandlerImpl;
 
-            fn generate(&self) -> Self::ND {
+            fn generate(&self) -> Self::H {
                 match self {
-                    $(Self::$variant => NeighborImpl::$variant($variant::generate()),)+
+                    $(Self::$variant => NeighborHandlerImpl::$variant($variant::generate()),)+
                 }
             }
         }
@@ -301,8 +301,8 @@ mod tests {
         let state = StateImpl { c: -10. };
         let env = EnvImpl { d: 0. };
         let generator = WeightedNeighborGenerator::new(vec![
-            (NeighborEnum::NeighborA, 0.8),
-            (NeighborEnum::NeighborB, 0.8),
+            (Neighbor::NeighborA, 0.8),
+            (Neighbor::NeighborB, 0.8),
         ]);
         let mutator = Mutator::new(generator);
         let config = AnnealerConfig {
