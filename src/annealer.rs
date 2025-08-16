@@ -21,32 +21,28 @@ where
 
 pub trait Env {}
 
-struct Annealer<S, E, NL, G>
+struct Annealer<NL, G>
 where
-    S: State<E>,
-    E: Env,
     G: NeighborGenerator<NL>,
     NL: NeighborType,
 {
-    state: S,
-    env: E,
+    state: <NL::ND as NeighborDelegate>::State,
+    env: <NL::ND as NeighborDelegate>::Env,
     mutator: Mutator<G, NL>,
     config: AnnealerConfig,
 }
 
-impl<S, E, NL, G> Annealer<S, E, NL, G>
+impl<NL, G> Annealer<NL, G>
 where
-    S: State<E>,
-    E: Env,
     G: NeighborGenerator<NL>,
     NL: NeighborType,
 {
     fn new(
-        state: S,
-        env: E,
+        state: <NL::ND as NeighborDelegate>::State,
+        env: <NL::ND as NeighborDelegate>::Env,
         mutator: Mutator<G, NL>,
         config: AnnealerConfig,
-    ) -> Annealer<S, E, NL, G> {
+    ) -> Annealer<NL, G> {
         Annealer {
             state,
             env,
@@ -157,17 +153,26 @@ where
         }
     }
 
-    fn commit<S: State<E>, E: Env>(&mut self, state: &mut S, env: &E) {
-        // let n = self.generator.generate();
-        // n.commit(state, env);
-        // self.last_neighbor = Some(n);
+    fn commit(
+        &mut self,
+        state: &mut <NL::ND as NeighborDelegate>::State,
+        env: &<NL::ND as NeighborDelegate>::Env,
+    ) {
+        let n = self.generator.generate();
+        n.commit(state, env);
+        self.last_neighbor = Some(n);
     }
 
-    fn revert<S: State<E>, E: Env>(&mut self, state: &mut S, env: &E) {
-        // self.last_neighbor
-        //     .take()
-        //     .expect("expect last neighbor being set before revert")
-        //     .revert(state, env);
+    fn revert(
+        &mut self,
+        state: &mut <NL::ND as NeighborDelegate>::State,
+        env: &<NL::ND as NeighborDelegate>::Env,
+    ) {
+        let last_neighbor = self
+            .last_neighbor
+            .take()
+            .expect("expect last neighbor being set before revert");
+        last_neighbor.revert(state, env);
     }
 
     fn get_last_tag(&self) -> Option<&'static str> {
