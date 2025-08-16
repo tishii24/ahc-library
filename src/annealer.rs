@@ -26,7 +26,7 @@ where
     S: State<E>,
     E: Env,
     G: NeighborGenerator<NL>,
-    NL: NeighborList,
+    NL: NeighborType,
 {
     state: S,
     env: E,
@@ -39,7 +39,7 @@ where
     S: State<E>,
     E: Env,
     G: NeighborGenerator<NL>,
-    NL: NeighborList,
+    NL: NeighborType,
 {
     fn new(
         state: S,
@@ -99,28 +99,28 @@ trait NeighborDelegate {
     fn revert(&self, state: &mut Self::State, env: &Self::Env);
 }
 
-trait NeighborList {
+trait NeighborType {
     type ND: NeighborDelegate;
     fn generate(&self) -> Self::ND;
 }
 
 trait NeighborGenerator<NL>
 where
-    NL: NeighborList,
+    NL: NeighborType,
 {
     fn generate(&self) -> NL::ND;
 }
 
 struct WeightedNeighborGenerator<NL>
 where
-    NL: NeighborList,
+    NL: NeighborType,
 {
     neighbors: Vec<(NL, f32)>,
 }
 
 impl<NL> WeightedNeighborGenerator<NL>
 where
-    NL: NeighborList,
+    NL: NeighborType,
 {
     fn new(neighbors: Vec<(NL, f32)>) -> WeightedNeighborGenerator<NL> {
         WeightedNeighborGenerator { neighbors }
@@ -129,7 +129,7 @@ where
 
 impl<NL> NeighborGenerator<NL> for WeightedNeighborGenerator<NL>
 where
-    NL: NeighborList,
+    NL: NeighborType,
 {
     fn generate(&self) -> NL::ND {
         todo!()
@@ -139,7 +139,7 @@ where
 struct Mutator<G, NL>
 where
     G: NeighborGenerator<NL>,
-    NL: NeighborList,
+    NL: NeighborType,
 {
     generator: G,
     last_neighbor: Option<NL::ND>,
@@ -148,7 +148,7 @@ where
 impl<G, NL> Mutator<G, NL>
 where
     G: NeighborGenerator<NL>,
-    NL: NeighborList,
+    NL: NeighborType,
 {
     fn new(generator: G) -> Mutator<G, NL> {
         Mutator {
@@ -157,9 +157,18 @@ where
         }
     }
 
-    fn commit<S: State<E>, E: Env>(&self, state: &mut S, env: &E) {}
+    fn commit<S: State<E>, E: Env>(&mut self, state: &mut S, env: &E) {
+        // let n = self.generator.generate();
+        // n.commit(state, env);
+        // self.last_neighbor = Some(n);
+    }
 
-    fn revert<S: State<E>, E: Env>(&self, state: &mut S, env: &E) {}
+    fn revert<S: State<E>, E: Env>(&mut self, state: &mut S, env: &E) {
+        // self.last_neighbor
+        //     .take()
+        //     .expect("expect last neighbor being set before revert")
+        //     .revert(state, env);
+    }
 
     fn get_last_tag(&self) -> Option<&'static str> {
         if let Some(last_neighbor) = &self.last_neighbor {
@@ -203,11 +212,13 @@ macro_rules! neighbor_impl {
             $($variant,)+
         }
 
-        impl NeighborList for NeighborEnum {
+        impl NeighborType for NeighborEnum {
             type ND = NeighborImpl;
 
             fn generate(&self) -> Self::ND {
-                todo!()
+                match self {
+                    $(Self::$variant => NeighborImpl::$variant($variant::generate()),)+
+                }
             }
         }
     };
@@ -238,6 +249,10 @@ mod tests {
     }
 
     impl NeighborA {
+        fn generate() -> NeighborA {
+            NeighborA { a: 1. }
+        }
+
         fn commit(&self, state: &mut StateImpl, env: &EnvImpl) {
             state.c += self.a;
         }
@@ -256,6 +271,10 @@ mod tests {
     }
 
     impl NeighborB {
+        fn generate() -> NeighborB {
+            NeighborB { b: 1. }
+        }
+
         fn commit(&self, state: &mut StateImpl, env: &EnvImpl) {
             state.c += self.b;
         }
