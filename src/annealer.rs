@@ -128,7 +128,7 @@ where
     NL: NeighborType,
 {
     fn generate(&self) -> NL::ND {
-        todo!()
+        self.neighbors[0].0.generate()
     }
 }
 
@@ -295,6 +295,7 @@ mod tests {
 
     neighbor_impl!(StateImpl, EnvImpl, NeighborA, NeighborB);
 
+    #[test]
     fn test_run() {
         let state = StateImpl { c: -10. };
         let env = EnvImpl { d: 0. };
