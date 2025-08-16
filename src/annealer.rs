@@ -21,28 +21,28 @@ where
 
 pub trait Env {}
 
-struct Annealer<NL, G>
+struct Annealer<N, G>
 where
-    G: NeighborGenerator<NL>,
-    NL: NeighborType,
+    G: NeighborGenerator<N>,
+    N: Neighbors,
 {
-    state: <NL::ND as NeighborDelegate>::State,
-    env: <NL::ND as NeighborDelegate>::Env,
-    mutator: Mutator<G, NL>,
+    state: <N::ND as NeighborDelegate>::State,
+    env: <N::ND as NeighborDelegate>::Env,
+    mutator: Mutator<G, N>,
     config: AnnealerConfig,
 }
 
-impl<NL, G> Annealer<NL, G>
+impl<N, G> Annealer<N, G>
 where
-    G: NeighborGenerator<NL>,
-    NL: NeighborType,
+    G: NeighborGenerator<N>,
+    N: Neighbors,
 {
     fn new(
-        state: <NL::ND as NeighborDelegate>::State,
-        env: <NL::ND as NeighborDelegate>::Env,
-        mutator: Mutator<G, NL>,
+        state: <N::ND as NeighborDelegate>::State,
+        env: <N::ND as NeighborDelegate>::Env,
+        mutator: Mutator<G, N>,
         config: AnnealerConfig,
-    ) -> Annealer<NL, G> {
+    ) -> Annealer<N, G> {
         Annealer {
             state,
             env,
@@ -70,7 +70,7 @@ where
     }
 
     fn adopt(&self, cur_score: f64, new_score: f64) -> bool {
-        cur_score < new_score
+        new_score < cur_score
     }
 
     fn register_result(&self, result: bool, improved: bool, score_delta: f32) {
@@ -95,58 +95,59 @@ trait NeighborDelegate {
     fn revert(&self, state: &mut Self::State, env: &Self::Env);
 }
 
-trait NeighborType {
+trait Neighbors {
     type ND: NeighborDelegate;
     fn generate(&self) -> Self::ND;
 }
 
-trait NeighborGenerator<NL>
+trait NeighborGenerator<N>
 where
-    NL: NeighborType,
+    N: Neighbors,
 {
-    fn generate(&self) -> NL::ND;
+    fn generate(&self) -> N::ND;
 }
 
-struct WeightedNeighborGenerator<NL>
+struct WeightedNeighborGenerator<N>
 where
-    NL: NeighborType,
+    N: Neighbors,
 {
-    neighbors: Vec<(NL, f32)>,
+    neighbors: Vec<(N, f32)>,
 }
 
-impl<NL> WeightedNeighborGenerator<NL>
+impl<N> WeightedNeighborGenerator<N>
 where
-    NL: NeighborType,
+    N: Neighbors,
 {
-    fn new(neighbors: Vec<(NL, f32)>) -> WeightedNeighborGenerator<NL> {
+    fn new(neighbors: Vec<(N, f32)>) -> WeightedNeighborGenerator<N> {
         WeightedNeighborGenerator { neighbors }
     }
 }
 
-impl<NL> NeighborGenerator<NL> for WeightedNeighborGenerator<NL>
+impl<N> NeighborGenerator<N> for WeightedNeighborGenerator<N>
 where
-    NL: NeighborType,
+    N: Neighbors,
 {
-    fn generate(&self) -> NL::ND {
+    fn generate(&self) -> N::ND {
+        // TODO: improve
         self.neighbors[0].0.generate()
     }
 }
 
-struct Mutator<G, NL>
+struct Mutator<G, N>
 where
-    G: NeighborGenerator<NL>,
-    NL: NeighborType,
+    G: NeighborGenerator<N>,
+    N: Neighbors,
 {
     generator: G,
-    last_neighbor: Option<NL::ND>,
+    last_neighbor: Option<N::ND>,
 }
 
-impl<G, NL> Mutator<G, NL>
+impl<G, N> Mutator<G, N>
 where
-    G: NeighborGenerator<NL>,
-    NL: NeighborType,
+    G: NeighborGenerator<N>,
+    N: Neighbors,
 {
-    fn new(generator: G) -> Mutator<G, NL> {
+    fn new(generator: G) -> Mutator<G, N> {
         Mutator {
             generator,
             last_neighbor: None,
@@ -155,8 +156,8 @@ where
 
     fn commit(
         &mut self,
-        state: &mut <NL::ND as NeighborDelegate>::State,
-        env: &<NL::ND as NeighborDelegate>::Env,
+        state: &mut <N::ND as NeighborDelegate>::State,
+        env: &<N::ND as NeighborDelegate>::Env,
     ) {
         let n = self.generator.generate();
         n.commit(state, env);
@@ -165,8 +166,8 @@ where
 
     fn revert(
         &mut self,
-        state: &mut <NL::ND as NeighborDelegate>::State,
-        env: &<NL::ND as NeighborDelegate>::Env,
+        state: &mut <N::ND as NeighborDelegate>::State,
+        env: &<N::ND as NeighborDelegate>::Env,
     ) {
         let last_neighbor = self
             .last_neighbor
@@ -217,7 +218,7 @@ macro_rules! neighbor_impl {
             $($variant,)+
         }
 
-        impl NeighborType for NeighborEnum {
+        impl Neighbors for NeighborEnum {
             type ND = NeighborImpl;
 
             fn generate(&self) -> Self::ND {
