@@ -21,32 +21,32 @@ where
 
 pub trait Env {}
 
-struct Annealer<S, E, N, G>
+struct Annealer<S, E, NL, G>
 where
     S: State<E>,
     E: Env,
-    G: NeighborGenerator<N>,
-    N: Neighbor,
+    G: NeighborGenerator<NL>,
+    NL: NeighborList,
 {
     state: S,
     env: E,
-    mutator: Mutator<G, N>,
+    mutator: Mutator<G, NL>,
     config: AnnealerConfig,
 }
 
-impl<S, E, N, G> Annealer<S, E, N, G>
+impl<S, E, NL, G> Annealer<S, E, NL, G>
 where
     S: State<E>,
     E: Env,
-    G: NeighborGenerator<N>,
-    N: Neighbor,
+    G: NeighborGenerator<NL>,
+    NL: NeighborList,
 {
     fn new(
         state: S,
         env: E,
-        mutator: Mutator<G, N>,
+        mutator: Mutator<G, NL>,
         config: AnnealerConfig,
-    ) -> Annealer<S, E, N, G> {
+    ) -> Annealer<S, E, NL, G> {
         Annealer {
             state,
             env,
@@ -90,7 +90,7 @@ struct AnnealerConfig {
     log_interval: usize,
 }
 
-trait Neighbor {
+trait NeighborDelegate {
     type State: State<Self::Env>;
     type Env: Env;
 
@@ -99,53 +99,58 @@ trait Neighbor {
     fn revert(&self, state: &mut Self::State, env: &Self::Env);
 }
 
-trait NeighborGenerator<N>
-where
-    N: Neighbor,
-{
-    fn generate(&self) -> N;
+trait NeighborList {
+    type ND: NeighborDelegate;
+    fn generate(&self) -> Self::ND;
 }
 
-struct WeightedNeighborGenerator<N> {
-    neighbors: Vec<(N, f32)>,
+trait NeighborGenerator<NL>
+where
+    NL: NeighborList,
+{
+    fn generate(&self) -> NL::ND;
 }
 
-impl<N> WeightedNeighborGenerator<N>
+struct WeightedNeighborGenerator<NL>
 where
-    N: Neighbor,
+    NL: NeighborList,
 {
-    fn new(neighbors: Vec<(N, f32)>) -> WeightedNeighborGenerator<N> {
+    neighbors: Vec<(NL, f32)>,
+}
+
+impl<NL> WeightedNeighborGenerator<NL>
+where
+    NL: NeighborList,
+{
+    fn new(neighbors: Vec<(NL, f32)>) -> WeightedNeighborGenerator<NL> {
         WeightedNeighborGenerator { neighbors }
     }
-
-    fn generate(&self) -> N {
-        todo!()
-    }
 }
-impl<N> NeighborGenerator<N> for WeightedNeighborGenerator<N>
+
+impl<NL> NeighborGenerator<NL> for WeightedNeighborGenerator<NL>
 where
-    N: Neighbor,
+    NL: NeighborList,
 {
-    fn generate(&self) -> N {
+    fn generate(&self) -> NL::ND {
         todo!()
     }
 }
 
-struct Mutator<G, N>
+struct Mutator<G, NL>
 where
-    G: NeighborGenerator<N>,
-    N: Neighbor,
+    G: NeighborGenerator<NL>,
+    NL: NeighborList,
 {
     generator: G,
-    last_neighbor: Option<N>,
+    last_neighbor: Option<NL::ND>,
 }
 
-impl<G, N> Mutator<G, N>
+impl<G, NL> Mutator<G, NL>
 where
-    G: NeighborGenerator<N>,
-    N: Neighbor,
+    G: NeighborGenerator<NL>,
+    NL: NeighborList,
 {
-    fn new(generator: G) -> Mutator<G, N> {
+    fn new(generator: G) -> Mutator<G, NL> {
         Mutator {
             generator,
             last_neighbor: None,
@@ -171,7 +176,7 @@ macro_rules! neighbor_impl {
             $($variant($variant),)+
         }
 
-        impl Neighbor for NeighborImpl {
+        impl NeighborDelegate for NeighborImpl {
             type Env = $env_type;
             type State = $state_type;
 
@@ -191,6 +196,18 @@ macro_rules! neighbor_impl {
                 match self {
                     $(Self::$variant(inner) => inner.revert(state, env),)+
                 }
+            }
+        }
+
+        enum NeighborEnum {
+            $($variant,)+
+        }
+
+        impl NeighborList for NeighborEnum {
+            type ND = NeighborImpl;
+
+            fn generate(&self) -> Self::ND {
+                todo!()
             }
         }
     };
@@ -258,8 +275,8 @@ mod tests {
         let state = StateImpl { c: -10. };
         let env = EnvImpl { d: 0. };
         let generator = WeightedNeighborGenerator::new(vec![
-            (NeighborImpl::NeighborA(NeighborA { a: 1. }), 0.8),
-            (NeighborImpl::NeighborB(NeighborB { b: 1. }), 0.8),
+            (NeighborEnum::NeighborA, 0.8),
+            (NeighborEnum::NeighborB, 0.8),
         ]);
         let mutator = Mutator::new(generator);
         let config = AnnealerConfig {
