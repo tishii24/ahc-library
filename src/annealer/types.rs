@@ -1,4 +1,4 @@
-use crate::utils::rnd::Rnd;
+use crate::utils::{rnd::Rnd, time};
 
 pub trait State<E>
 where
@@ -50,6 +50,27 @@ pub trait Criterion {
 
 pub trait Scheduler {
     fn get_temp(&self, progress: f64) -> f64;
+}
+
+pub enum AnnealingDuration {
+    Iteration(usize),
+    Time(f64),
+}
+
+impl AnnealingDuration {
+    pub fn is_complete(&self, step: usize) -> bool {
+        match self {
+            AnnealingDuration::Iteration(iter) => step >= *iter,
+            AnnealingDuration::Time(time) => time::elapsed_seconds() >= *time,
+        }
+    }
+
+    pub fn get_progress(&self, step: usize) -> f64 {
+        match self {
+            AnnealingDuration::Iteration(iter) => step as f64 / *iter as f64,
+            AnnealingDuration::Time(time) => time::elapsed_seconds() / *time,
+        }
+    }
 }
 
 #[macro_export]

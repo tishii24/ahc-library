@@ -22,13 +22,13 @@ use std::collections::HashSet;
 
 use crate::annealer::components::Mutator;
 use crate::annealer::types::{
-    Criterion, NeighborGenerator, NeighborHandler, NeighborType, Scheduler, State,
+    AnnealingDuration, Criterion, NeighborGenerator, NeighborHandler, NeighborType, Scheduler,
+    State,
 };
 use crate::utils::rnd::Rnd;
 
 pub struct AnnealerConfig {
-    pub iteration: usize,
-    pub log_interval: usize,
+    pub duration: AnnealingDuration,
 }
 
 pub struct Annealer<G, N, C, S>
@@ -42,11 +42,11 @@ where
     pub env: <N::H as NeighborHandler>::Env,
     pub criterion: C,
     pub scheduler: S,
-    config: AnnealerConfig,
     pub log_store: LogStore,
     mutator: Mutator<G, N>,
-    rnd: Rnd,
     cur_score: f64,
+    rnd: Rnd,
+    config: AnnealerConfig,
 }
 
 impl<G, N, C, S> Annealer<G, N, C, S>
@@ -80,11 +80,15 @@ where
     }
 
     pub fn run(&mut self) {
-        for t in 0..self.config.iteration {
-            let progress = t as f64 / self.config.iteration as f64;
+        while !self.config.duration.is_complete(self.cur_step()) {
+            let progress = self.config.duration.get_progress(self.cur_step());
             let step_log = self.step(progress);
             self.log_store.send_log(step_log);
         }
+    }
+
+    fn cur_step(&self) -> usize {
+        self.log_store.logs.len()
     }
 
     fn step(&mut self, progress: f64) -> StepLog {

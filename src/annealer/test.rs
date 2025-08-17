@@ -82,8 +82,7 @@ mod test_single_variable {
         ]);
         let mutator = Mutator::new(generator);
         let config = AnnealerConfig {
-            iteration: 1000,
-            log_interval: 100,
+            duration: AnnealingDuration::Iteration(1_000),
         };
         let scheduler = ExpScheduler::new(1e0, 1e-4);
         let criterion = HillClimbingCriterion::new(false);
@@ -199,8 +198,7 @@ mod test_knapsack {
         let generator = WeightedNeighborGenerator::new(vec![(Neighbor::ToggleOne, 0.8)]);
         let mutator = Mutator::new(generator);
         let config = AnnealerConfig {
-            iteration: 1000,
-            log_interval: 100,
+            duration: AnnealingDuration::Time(0.1),
         };
         let scheduler = ExpScheduler::new(1e0, 1e-4);
         let criterion = AnnealingCriterion::new(true);
