@@ -78,7 +78,7 @@ mod test_single_variable {
         let env = EnvImpl { d: 0. };
         let generator = WeightedNeighborGenerator::new(vec![
             (Neighbor::NeighborA, 0.2),
-            (Neighbor::NeighborB, 0.8),
+            (Neighbor::NeighborB, 2.0),
         ]);
         let mutator = Mutator::new(generator);
         let config = AnnealerConfig {
