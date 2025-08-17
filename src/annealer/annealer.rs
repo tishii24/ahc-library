@@ -1,8 +1,5 @@
 /*
 TODO:
-- ロガー
-    - スコアの遷移
-
 - Op
 - ベスト解出力
 - キック
@@ -11,32 +8,25 @@ TODO:
     - ロガーの無効化
 - ベスト解からのやり直し
 - 時間の取得間隔を設定
+- ロガー
+    - スコアの遷移
 
-- 温度自動調整
 - 近傍確率の時間に応じた調整
 - 近傍ごとの受諾確率調整
 - [焼きなまし法での評価関数の打ち切り](https://qiita.com/not522/items/cd20b87157d15850d31c)
+
+- 温度自動調整
 */
 
 use std::collections::HashSet;
 
-use crate::annealer::components::Mutator;
 use crate::annealer::types::{
     Criterion, NeighborGenerator, NeighborHandler, NeighborType, ProgressScheduler, State,
     TemperatureScheduler,
 };
 use crate::utils::rnd::Rnd;
 
-pub struct AnnealerConfig<C, T, P>
-where
-    C: Criterion,
-    T: TemperatureScheduler,
-    P: ProgressScheduler,
-{
-    pub criterion: C,
-    pub temperature: T,
-    pub progress: P,
-}
+pub struct AnnealerConfig {}
 
 pub struct Annealer<G, N, C, T, P>
 where
@@ -50,9 +40,11 @@ where
     pub env: <N::H as NeighborHandler>::Env,
     pub log_store: AnnealingLogStore,
     mutator: Mutator<G, N>,
-    cur_score: f64,
+    criterion: C,
+    temperature: T,
+    progress: P,
     rnd: Rnd,
-    config: AnnealerConfig<C, T, P>,
+    config: AnnealerConfig,
 }
 
 impl<G, N, C, T, P> Annealer<G, N, C, T, P>
@@ -64,36 +56,39 @@ where
     P: ProgressScheduler,
 {
     pub fn new(
-        mut state: <N::H as NeighborHandler>::State,
+        state: <N::H as NeighborHandler>::State,
         env: <N::H as NeighborHandler>::Env,
         mutator: Mutator<G, N>,
-        config: AnnealerConfig<C, T, P>,
-        rnd: Rnd,
+        progress: P,
+        criterion: C,
+        temperature: T,
+        config: AnnealerConfig,
     ) -> Annealer<G, N, C, T, P> {
-        let cur_score = state.calc_score(&env);
         Annealer {
             state,
             env,
-            mutator,
-            config,
             log_store: AnnealingLogStore::new(),
-            rnd,
-            cur_score,
+            mutator,
+            progress,
+            criterion,
+            temperature,
+            rnd: Rnd::new(24),
+            config,
         }
     }
 
     pub fn run(&mut self) {
-        self.config.progress.start();
+        self.progress.start();
 
         loop {
-            let progress = self.config.progress.get_progress();
+            let progress = self.progress.get_progress();
             if progress >= 1. {
                 break;
             }
 
             let step_log = self.step(progress);
             self.log_store.send_log(step_log);
-            self.config.progress.step();
+            self.progress.step();
         }
     }
 
@@ -102,13 +97,14 @@ where
     }
 
     fn step(&mut self, progress: f64) -> StepLog {
+        let cur_score = self.state.get_score(&self.env);
         let (successed, tag) =
             self.mutator
                 .mutate(&mut self.state, &self.env, progress, &mut self.rnd);
 
         if !successed {
             return StepLog {
-                score: self.cur_score,
+                score: cur_score,
                 adopt: false,
                 valid: false,
                 tag,
@@ -117,30 +113,76 @@ where
         }
 
         let new_score = self.state.get_score(&self.env);
-        let score_delta = new_score - self.cur_score;
-        let cur_temp = self.config.temperature.get_temp(progress);
-        let adopt = self.config.criterion.adopt(
-            self.cur_score,
-            new_score,
-            cur_temp,
-            progress,
-            &mut self.rnd,
-        );
+        let score_delta = new_score - cur_score;
+        let cur_temp = self.temperature.get_temp(progress);
+        let adopt = self
+            .criterion
+            .adopt(cur_score, new_score, cur_temp, progress, &mut self.rnd);
 
-        if adopt {
-            self.cur_score = new_score;
-        } else {
+        if !adopt {
             self.mutator
                 .revert(&mut self.state, &self.env, &mut self.rnd);
         }
 
         StepLog {
-            score: self.cur_score,
+            score: cur_score,
             adopt,
             valid: true,
             tag,
             score_delta,
         }
+    }
+}
+
+pub struct Mutator<G, N>
+where
+    G: NeighborGenerator<N>,
+    N: NeighborType,
+{
+    generator: G,
+    last_neighbor: Option<N::H>,
+}
+
+impl<G, N> Mutator<G, N>
+where
+    G: NeighborGenerator<N>,
+    N: NeighborType,
+{
+    pub fn new(generator: G) -> Mutator<G, N> {
+        Mutator {
+            generator,
+            last_neighbor: None,
+        }
+    }
+
+    pub fn mutate(
+        &mut self,
+        state: &mut <N::H as NeighborHandler>::State,
+        env: &<N::H as NeighborHandler>::Env,
+        progress: f64,
+        rnd: &mut Rnd,
+    ) -> (bool, &'static str) {
+        let mut n = self.generator.generate(progress, rnd);
+        let successed = n.apply(state, env, rnd);
+        let tag = n.tag();
+        self.last_neighbor = Some(n);
+        if !successed {
+            return (false, tag);
+        }
+        (true, tag)
+    }
+
+    pub fn revert(
+        &mut self,
+        state: &mut <N::H as NeighborHandler>::State,
+        env: &<N::H as NeighborHandler>::Env,
+        rnd: &mut Rnd,
+    ) {
+        let mut last_neighbor = self
+            .last_neighbor
+            .take()
+            .expect("expect last neighbor being set before revert");
+        last_neighbor.revert(state, env, rnd);
     }
 }
 

@@ -2,8 +2,9 @@
 mod test_single_variable {
     use crate::annealer::annealer::*;
     use crate::annealer::components::{
-        ExpScheduler, HillClimbingCriterion, IterationProgressScheduler, Mutator,
-        WeightedNeighborGenerator,
+        criterion::HillClimbingCriterion, neighbor_generator::WeightedNeighborGenerator,
+        progress_scheduler::IterationProgressScheduler,
+        temperature_scheduler::ExpTemperatureScheduler,
     };
     use crate::annealer::types::*;
     use crate::neighbor_impl;
@@ -82,13 +83,15 @@ mod test_single_variable {
             (Neighbor::NeighborB, 2.0),
         ]);
         let mutator = Mutator::new(generator);
-        let config = AnnealerConfig {
-            progress: IterationProgressScheduler::new(1_000),
-            temperature: ExpScheduler::new(1e0, 1e-4),
-            criterion: HillClimbingCriterion::new(false),
-        };
-        let rng = Rnd::new(42);
-        let mut annealer = Annealer::new(state, env, mutator, config, rng);
+        let mut annealer = Annealer::new(
+            state,
+            env,
+            mutator,
+            IterationProgressScheduler::new(1_000),
+            HillClimbingCriterion::new(false),
+            ExpTemperatureScheduler::new(1e0, 1e-4),
+            AnnealerConfig {},
+        );
         annealer.run();
 
         let (mut state, env, statistics) = (annealer.state, annealer.env, annealer.log_store);
@@ -101,8 +104,9 @@ mod test_single_variable {
 mod test_knapsack {
     use crate::annealer::annealer::*;
     use crate::annealer::components::{
-        AnnealingCriterion, ExpScheduler, Mutator, SecondProgressScheduler,
-        WeightedNeighborGenerator,
+        criterion::AnnealingCriterion, neighbor_generator::WeightedNeighborGenerator,
+        progress_scheduler::SecondProgressScheduler,
+        temperature_scheduler::ExpTemperatureScheduler,
     };
     use crate::annealer::types::*;
     use crate::neighbor_impl;
@@ -199,13 +203,15 @@ mod test_knapsack {
         };
         let generator = WeightedNeighborGenerator::new(vec![(Neighbor::ToggleOne, 0.8)]);
         let mutator = Mutator::new(generator);
-        let config = AnnealerConfig {
-            progress: SecondProgressScheduler::new(0.1),
-            temperature: ExpScheduler::new(1e0, 1e-4),
-            criterion: AnnealingCriterion::new(true),
-        };
-        let rng = Rnd::new(42);
-        let mut annealer = Annealer::new(state, env, mutator, config, rng);
+        let mut annealer = Annealer::new(
+            state,
+            env,
+            mutator,
+            SecondProgressScheduler::new(0.1),
+            AnnealingCriterion::new(true),
+            ExpTemperatureScheduler::new(1e0, 1e-4),
+            AnnealerConfig {},
+        );
         annealer.run();
 
         let (mut state, env, statistics) = (annealer.state, annealer.env, annealer.log_store);
