@@ -3,6 +3,7 @@ use crate::{
     utils::rnd::Rnd,
 };
 
+/// TODO: ちゃんと実装する
 pub struct WeightedNeighborGenerator<N>
 where
     N: NeighborType,
@@ -24,9 +25,10 @@ impl<N> NeighborGenerator<N> for WeightedNeighborGenerator<N>
 where
     N: NeighborType,
 {
-    fn generate(&self, _progress: f64) -> N::H {
-        // TODO: improve
-        self.neighbors[0].0.generate()
+    fn generate(&self, _progress: f64, rnd: &mut Rnd) -> N::H {
+        self.neighbors[rnd.gen_index(self.neighbors.len())]
+            .0
+            .generate()
     }
 }
 
@@ -119,10 +121,15 @@ where
         env: &<N::H as NeighborHandler>::Env,
         progress: f64,
         rnd: &mut Rnd,
-    ) {
-        let mut n = self.generator.generate(progress);
-        n.apply(state, env, rnd);
+    ) -> (bool, &'static str) {
+        let mut n = self.generator.generate(progress, rnd);
+        let successed = n.apply(state, env, rnd);
+        let tag = n.tag();
         self.last_neighbor = Some(n);
+        if !successed {
+            return (false, tag);
+        }
+        (true, tag)
     }
 
     pub fn revert(
@@ -136,13 +143,5 @@ where
             .take()
             .expect("expect last neighbor being set before revert");
         last_neighbor.revert(state, env, rnd);
-    }
-
-    fn get_last_tag(&self) -> Option<&'static str> {
-        if let Some(last_neighbor) = &self.last_neighbor {
-            Some(last_neighbor.tag())
-        } else {
-            None
-        }
     }
 }

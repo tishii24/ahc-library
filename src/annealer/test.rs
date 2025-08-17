@@ -33,8 +33,9 @@ mod test_single_variable {
             NeighborA { a: 1. }
         }
 
-        fn apply(&mut self, state: &mut StateImpl, _: &EnvImpl, _: &mut Rnd) {
+        fn apply(&mut self, state: &mut StateImpl, _: &EnvImpl, _: &mut Rnd) -> bool {
             state.c += self.a;
+            true
         }
 
         fn revert(&mut self, state: &mut StateImpl, _: &EnvImpl, _: &mut Rnd) {
@@ -55,8 +56,9 @@ mod test_single_variable {
             NeighborB { b: 1. }
         }
 
-        fn apply(&mut self, state: &mut StateImpl, _: &EnvImpl, _: &mut Rnd) {
+        fn apply(&mut self, state: &mut StateImpl, _: &EnvImpl, _: &mut Rnd) -> bool {
             state.c += self.b;
+            true
         }
 
         fn revert(&mut self, state: &mut StateImpl, _: &EnvImpl, _: &mut Rnd) {
@@ -80,17 +82,18 @@ mod test_single_variable {
         ]);
         let mutator = Mutator::new(generator);
         let config = AnnealerConfig {
-            scheduler: ExpScheduler::new(1e1, 1e-3),
-            criterion: HillClimbingCriterion::new(false),
             iteration: 1000,
             log_interval: 100,
         };
+        let scheduler = ExpScheduler::new(1e0, 1e-4);
+        let criterion = HillClimbingCriterion::new(false);
         let rng = Rnd::new(42);
-        let mut annealer = Annealer::new(state, env, mutator, config, rng);
+        let mut annealer = Annealer::new(state, env, mutator, criterion, scheduler, config, rng);
         annealer.run();
 
-        let (mut state, env) = (annealer.state, annealer.env);
+        let (mut state, env, statistics) = (annealer.state, annealer.env, annealer.log_store);
         assert_eq!(state.calc_score(&env), 0.);
+        statistics.print();
     }
 }
 
@@ -98,7 +101,7 @@ mod test_single_variable {
 mod test_knapsack {
     use crate::annealer::annealer::*;
     use crate::annealer::components::{
-        ExpScheduler, HillClimbingCriterion, Mutator, WeightedNeighborGenerator,
+        AnnealingCriterion, ExpScheduler, Mutator, WeightedNeighborGenerator,
     };
     use crate::annealer::types::*;
     use crate::neighbor_impl;
@@ -149,7 +152,7 @@ mod test_knapsack {
             ToggleOne { i: None }
         }
 
-        fn apply(&mut self, state: &mut StateImpl, env: &EnvImpl, rnd: &mut Rnd) {
+        fn apply(&mut self, state: &mut StateImpl, env: &EnvImpl, rnd: &mut Rnd) -> bool {
             self.i = Some(rnd.gen_index(env.items.len()));
             let i = self.i.unwrap();
             if state.used[i] {
@@ -160,6 +163,7 @@ mod test_knapsack {
                 state.value_sum += env.items[i].1;
             }
             state.used[i] = !state.used[i];
+            true
         }
 
         fn revert(&mut self, state: &mut StateImpl, env: &EnvImpl, _: &mut Rnd) {
@@ -195,16 +199,17 @@ mod test_knapsack {
         let generator = WeightedNeighborGenerator::new(vec![(Neighbor::ToggleOne, 0.8)]);
         let mutator = Mutator::new(generator);
         let config = AnnealerConfig {
-            scheduler: ExpScheduler::new(1e1, 1e-3),
-            criterion: HillClimbingCriterion::new(true),
             iteration: 1000,
             log_interval: 100,
         };
+        let scheduler = ExpScheduler::new(1e0, 1e-4);
+        let criterion = AnnealingCriterion::new(true);
         let rng = Rnd::new(42);
-        let mut annealer = Annealer::new(state, env, mutator, config, rng);
+        let mut annealer = Annealer::new(state, env, mutator, criterion, scheduler, config, rng);
         annealer.run();
 
-        let (mut state, env) = (annealer.state, annealer.env);
+        let (mut state, env, statistics) = (annealer.state, annealer.env, annealer.log_store);
         assert_eq!(state.calc_score(&env), 10.);
+        statistics.print();
     }
 }

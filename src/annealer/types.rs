@@ -21,7 +21,7 @@ pub trait NeighborHandler {
     type Env: Env;
 
     fn tag(&self) -> &'static str;
-    fn apply(&mut self, state: &mut Self::State, env: &Self::Env, rnd: &mut Rnd);
+    fn apply(&mut self, state: &mut Self::State, env: &Self::Env, rnd: &mut Rnd) -> bool;
     fn revert(&mut self, state: &mut Self::State, env: &Self::Env, rnd: &mut Rnd);
 }
 
@@ -34,7 +34,7 @@ pub trait NeighborGenerator<N>
 where
     N: NeighborType,
 {
-    fn generate(&self, progress: f64) -> N::H;
+    fn generate(&self, progress: f64, rnd: &mut Rnd) -> N::H;
 }
 
 pub trait Criterion {
@@ -69,7 +69,7 @@ macro_rules! neighbor_impl {
                 }
             }
 
-            fn apply(&mut self, state: &mut $state_type, env: &$env_type, rnd: &mut Rnd) {
+            fn apply(&mut self, state: &mut $state_type, env: &$env_type, rnd: &mut Rnd) -> bool {
                 match self {
                     $(Self::$variant(inner) => inner.apply(state, env, rnd),)+
                 }
