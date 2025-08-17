@@ -1,6 +1,5 @@
 /*
 TODO:
-- 重みの自動計算
 - ロガー
     - スコアの遷移
 
@@ -154,7 +153,14 @@ impl LogStore {
         let valid_steps = valid_logs.len();
         let initial_score = self.logs.first().map_or(0.0, |log| log.score);
         let final_score = self.logs.last().map_or(0.0, |log| log.score);
-        let neighbor_tags = self.logs.iter().map(|log| log.tag).collect::<HashSet<_>>();
+        let mut neighbor_tags = self
+            .logs
+            .iter()
+            .map(|log| log.tag)
+            .collect::<HashSet<_>>()
+            .into_iter()
+            .collect::<Vec<_>>();
+        neighbor_tags.sort();
 
         eprintln!();
         eprintln!("================== annealing results ==================");

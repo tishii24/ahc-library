@@ -8,15 +8,22 @@ pub struct WeightedNeighborGenerator<N>
 where
     N: NeighborType,
 {
-    // alias: WeightedAliasIndex<f64>,
-    neighbors: Vec<(N, f32)>,
+    neighbors: Vec<(N, f64)>,
 }
 
 impl<N> WeightedNeighborGenerator<N>
 where
     N: NeighborType,
 {
-    pub fn new(neighbors: Vec<(N, f32)>) -> WeightedNeighborGenerator<N> {
+    pub fn new(mut neighbors: Vec<(N, f64)>) -> WeightedNeighborGenerator<N> {
+        let total_weight: f64 = neighbors.iter().map(|(_, weight)| *weight).sum();
+        let mut cum_weight = 0.;
+        for (_, weight) in neighbors.iter_mut() {
+            assert!(*weight >= 0.0);
+            cum_weight += *weight / total_weight;
+            *weight = cum_weight;
+        }
+
         WeightedNeighborGenerator { neighbors }
     }
 }
@@ -26,9 +33,13 @@ where
     N: NeighborType,
 {
     fn generate(&self, _progress: f64, rnd: &mut Rnd) -> N::H {
-        self.neighbors[rnd.gen_index(self.neighbors.len())]
-            .0
-            .generate()
+        let p = rnd.nextf();
+        for (n, cum_weight) in self.neighbors.iter() {
+            if p < *cum_weight {
+                return n.generate();
+            }
+        }
+        unreachable!()
     }
 }
 
