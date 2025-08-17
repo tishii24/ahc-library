@@ -82,12 +82,12 @@ mod test_single_variable {
         ]);
         let mutator = Mutator::new(generator);
         let config = AnnealerConfig {
-            duration: AnnealingDuration::Iteration(1_000),
+            progress: IterationProgressScheduler::new(1_000),
+            temperature: ExpScheduler::new(1e0, 1e-4),
+            criterion: HillClimbingCriterion::new(false),
         };
-        let scheduler = ExpScheduler::new(1e0, 1e-4);
-        let criterion = HillClimbingCriterion::new(false);
         let rng = Rnd::new(42);
-        let mut annealer = Annealer::new(state, env, mutator, criterion, scheduler, config, rng);
+        let mut annealer = Annealer::new(state, env, mutator, config, rng);
         annealer.run();
 
         let (mut state, env, statistics) = (annealer.state, annealer.env, annealer.log_store);
@@ -198,12 +198,12 @@ mod test_knapsack {
         let generator = WeightedNeighborGenerator::new(vec![(Neighbor::ToggleOne, 0.8)]);
         let mutator = Mutator::new(generator);
         let config = AnnealerConfig {
-            duration: AnnealingDuration::Time(0.1),
+            progress: SecondProgressScheduler::new(0.1),
+            temperature: ExpScheduler::new(1e0, 1e-4),
+            criterion: AnnealingCriterion::new(true),
         };
-        let scheduler = ExpScheduler::new(1e0, 1e-4);
-        let criterion = AnnealingCriterion::new(true);
         let rng = Rnd::new(42);
-        let mut annealer = Annealer::new(state, env, mutator, criterion, scheduler, config, rng);
+        let mut annealer = Annealer::new(state, env, mutator, config, rng);
         annealer.run();
 
         let (mut state, env, statistics) = (annealer.state, annealer.env, annealer.log_store);

@@ -22,68 +22,78 @@ use std::collections::HashSet;
 
 use crate::annealer::components::Mutator;
 use crate::annealer::types::{
-    AnnealingDuration, Criterion, NeighborGenerator, NeighborHandler, NeighborType, Scheduler,
-    State,
+    Criterion, NeighborGenerator, NeighborHandler, NeighborType, ProgressScheduler, State,
+    TemperatureScheduler,
 };
 use crate::utils::rnd::Rnd;
 
-pub struct AnnealerConfig {
-    pub duration: AnnealingDuration,
+pub struct AnnealerConfig<C, T, P>
+where
+    C: Criterion,
+    T: TemperatureScheduler,
+    P: ProgressScheduler,
+{
+    pub criterion: C,
+    pub temperature: T,
+    pub progress: P,
 }
 
-pub struct Annealer<G, N, C, S>
+pub struct Annealer<G, N, C, T, P>
 where
     G: NeighborGenerator<N>,
     N: NeighborType,
     C: Criterion,
-    S: Scheduler,
+    T: TemperatureScheduler,
+    P: ProgressScheduler,
 {
     pub state: <N::H as NeighborHandler>::State,
     pub env: <N::H as NeighborHandler>::Env,
-    pub criterion: C,
-    pub scheduler: S,
-    pub log_store: LogStore,
+    pub log_store: AnnealingLogStore,
     mutator: Mutator<G, N>,
     cur_score: f64,
     rnd: Rnd,
-    config: AnnealerConfig,
+    config: AnnealerConfig<C, T, P>,
 }
 
-impl<G, N, C, S> Annealer<G, N, C, S>
+impl<G, N, C, T, P> Annealer<G, N, C, T, P>
 where
     G: NeighborGenerator<N>,
     N: NeighborType,
     C: Criterion,
-    S: Scheduler,
+    T: TemperatureScheduler,
+    P: ProgressScheduler,
 {
     pub fn new(
         mut state: <N::H as NeighborHandler>::State,
         env: <N::H as NeighborHandler>::Env,
         mutator: Mutator<G, N>,
-        criterion: C,
-        scheduler: S,
-        config: AnnealerConfig,
+        config: AnnealerConfig<C, T, P>,
         rnd: Rnd,
-    ) -> Annealer<G, N, C, S> {
+    ) -> Annealer<G, N, C, T, P> {
         let cur_score = state.calc_score(&env);
         Annealer {
             state,
             env,
             mutator,
-            criterion,
-            scheduler,
             config,
-            log_store: LogStore::new(),
+            log_store: AnnealingLogStore::new(),
             rnd,
             cur_score,
         }
     }
 
     pub fn run(&mut self) {
-        while !self.config.duration.is_complete(self.cur_step()) {
-            let progress = self.config.duration.get_progress(self.cur_step());
+        self.config.progress.start();
+
+        loop {
+            let progress = self.config.progress.get_progress();
+            if progress >= 1. {
+                break;
+            }
+
             let step_log = self.step(progress);
             self.log_store.send_log(step_log);
+            self.config.progress.step();
         }
     }
 
@@ -108,10 +118,14 @@ where
 
         let new_score = self.state.get_score(&self.env);
         let score_delta = new_score - self.cur_score;
-        let cur_temp = self.scheduler.get_temp(progress);
-        let adopt =
-            self.criterion
-                .adopt(self.cur_score, new_score, cur_temp, progress, &mut self.rnd);
+        let cur_temp = self.config.temperature.get_temp(progress);
+        let adopt = self.config.criterion.adopt(
+            self.cur_score,
+            new_score,
+            cur_temp,
+            progress,
+            &mut self.rnd,
+        );
 
         if adopt {
             self.cur_score = new_score;
@@ -138,13 +152,13 @@ struct StepLog {
     score_delta: f64,
 }
 
-pub struct LogStore {
+pub struct AnnealingLogStore {
     logs: Vec<StepLog>,
 }
 
-impl LogStore {
+impl AnnealingLogStore {
     fn new() -> Self {
-        LogStore { logs: Vec::new() }
+        AnnealingLogStore { logs: Vec::new() }
     }
 
     fn send_log(&mut self, step_log: StepLog) {

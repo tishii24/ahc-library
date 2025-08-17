@@ -48,28 +48,61 @@ pub trait Criterion {
     ) -> bool;
 }
 
-pub trait Scheduler {
+pub trait TemperatureScheduler {
     fn get_temp(&self, progress: f64) -> f64;
 }
 
-pub enum AnnealingDuration {
-    Iteration(usize),
-    Time(f64),
+pub trait ProgressScheduler {
+    fn start(&mut self) {}
+    fn step(&mut self) {}
+    fn get_progress(&self) -> f64;
 }
 
-impl AnnealingDuration {
-    pub fn is_complete(&self, step: usize) -> bool {
-        match self {
-            AnnealingDuration::Iteration(iter) => step >= *iter,
-            AnnealingDuration::Time(time) => time::elapsed_seconds() >= *time,
+pub struct IterationProgressScheduler {
+    iteration: usize,
+    cur_step: usize,
+}
+
+impl IterationProgressScheduler {
+    pub fn new(iteration: usize) -> Self {
+        IterationProgressScheduler {
+            iteration,
+            cur_step: 0,
         }
     }
+}
 
-    pub fn get_progress(&self, step: usize) -> f64 {
-        match self {
-            AnnealingDuration::Iteration(iter) => step as f64 / *iter as f64,
-            AnnealingDuration::Time(time) => time::elapsed_seconds() / *time,
+impl ProgressScheduler for IterationProgressScheduler {
+    fn step(&mut self) {
+        self.cur_step += 1;
+    }
+
+    fn get_progress(&self) -> f64 {
+        self.cur_step as f64 / self.iteration as f64
+    }
+}
+
+pub struct SecondProgressScheduler {
+    start_time: f64,
+    seconds: f64,
+}
+
+impl SecondProgressScheduler {
+    pub fn new(seconds: f64) -> Self {
+        SecondProgressScheduler {
+            start_time: 0.0,
+            seconds,
         }
+    }
+}
+
+impl ProgressScheduler for SecondProgressScheduler {
+    fn start(&mut self) {
+        self.start_time = time::elapsed_seconds();
+    }
+
+    fn get_progress(&self) -> f64 {
+        (time::elapsed_seconds() - self.start_time) / self.seconds
     }
 }
 

@@ -1,5 +1,7 @@
 use crate::{
-    annealer::types::{Criterion, NeighborGenerator, NeighborHandler, NeighborType, Scheduler},
+    annealer::types::{
+        Criterion, NeighborGenerator, NeighborHandler, NeighborType, TemperatureScheduler,
+    },
     utils::rnd::Rnd,
 };
 
@@ -99,7 +101,7 @@ impl ExpScheduler {
     }
 }
 
-impl Scheduler for ExpScheduler {
+impl TemperatureScheduler for ExpScheduler {
     fn get_temp(&self, progress: f64) -> f64 {
         self.start_temp.powf(1. - progress) * self.end_temp.powf(progress)
     }
