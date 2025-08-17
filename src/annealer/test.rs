@@ -2,7 +2,8 @@
 mod test_single_variable {
     use crate::annealer::annealer::*;
     use crate::annealer::components::{
-        ExpScheduler, HillClimbingCriterion, Mutator, WeightedNeighborGenerator,
+        ExpScheduler, HillClimbingCriterion, IterationProgressScheduler, Mutator,
+        WeightedNeighborGenerator,
     };
     use crate::annealer::types::*;
     use crate::neighbor_impl;
@@ -100,7 +101,8 @@ mod test_single_variable {
 mod test_knapsack {
     use crate::annealer::annealer::*;
     use crate::annealer::components::{
-        AnnealingCriterion, ExpScheduler, Mutator, WeightedNeighborGenerator,
+        AnnealingCriterion, ExpScheduler, Mutator, SecondProgressScheduler,
+        WeightedNeighborGenerator,
     };
     use crate::annealer::types::*;
     use crate::neighbor_impl;

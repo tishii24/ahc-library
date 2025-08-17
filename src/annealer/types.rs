@@ -1,4 +1,4 @@
-use crate::utils::{rnd::Rnd, time};
+use crate::utils::rnd::Rnd;
 
 pub trait State<E>
 where
@@ -56,54 +56,6 @@ pub trait ProgressScheduler {
     fn start(&mut self) {}
     fn step(&mut self) {}
     fn get_progress(&self) -> f64;
-}
-
-pub struct IterationProgressScheduler {
-    iteration: usize,
-    cur_step: usize,
-}
-
-impl IterationProgressScheduler {
-    pub fn new(iteration: usize) -> Self {
-        IterationProgressScheduler {
-            iteration,
-            cur_step: 0,
-        }
-    }
-}
-
-impl ProgressScheduler for IterationProgressScheduler {
-    fn step(&mut self) {
-        self.cur_step += 1;
-    }
-
-    fn get_progress(&self) -> f64 {
-        self.cur_step as f64 / self.iteration as f64
-    }
-}
-
-pub struct SecondProgressScheduler {
-    start_time: f64,
-    seconds: f64,
-}
-
-impl SecondProgressScheduler {
-    pub fn new(seconds: f64) -> Self {
-        SecondProgressScheduler {
-            start_time: 0.0,
-            seconds,
-        }
-    }
-}
-
-impl ProgressScheduler for SecondProgressScheduler {
-    fn start(&mut self) {
-        self.start_time = time::elapsed_seconds();
-    }
-
-    fn get_progress(&self) -> f64 {
-        (time::elapsed_seconds() - self.start_time) / self.seconds
-    }
 }
 
 #[macro_export]
