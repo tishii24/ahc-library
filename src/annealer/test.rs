@@ -1,16 +1,19 @@
 #[cfg(test)]
-mod tests {
+mod test_single_variable {
     use crate::annealer::annealer::*;
-    use crate::annealer::components::{Mutator, WeightedNeighborGenerator};
+    use crate::annealer::components::{
+        ExpScheduler, HillClimbingCriterion, Mutator, WeightedNeighborGenerator,
+    };
     use crate::annealer::types::*;
     use crate::neighbor_impl;
+    use crate::utils::rnd::Rnd;
 
     struct StateImpl {
         c: f64,
     }
 
     impl State<EnvImpl> for StateImpl {
-        fn calc_score(&self, env: &EnvImpl) -> f64 {
+        fn calc_score(&mut self, env: &EnvImpl) -> f64 {
             (self.c - env.d).powf(2.)
         }
     }
@@ -30,11 +33,11 @@ mod tests {
             NeighborA { a: 1. }
         }
 
-        fn apply(&self, state: &mut StateImpl, _: &EnvImpl) {
+        fn apply(&mut self, state: &mut StateImpl, _: &EnvImpl, _: &mut Rnd) {
             state.c += self.a;
         }
 
-        fn revert(&self, state: &mut StateImpl, _: &EnvImpl) {
+        fn revert(&mut self, state: &mut StateImpl, _: &EnvImpl, _: &mut Rnd) {
             state.c -= self.a;
         }
 
@@ -52,11 +55,11 @@ mod tests {
             NeighborB { b: 1. }
         }
 
-        fn apply(&self, state: &mut StateImpl, _: &EnvImpl) {
+        fn apply(&mut self, state: &mut StateImpl, _: &EnvImpl, _: &mut Rnd) {
             state.c += self.b;
         }
 
-        fn revert(&self, state: &mut StateImpl, _: &EnvImpl) {
+        fn revert(&mut self, state: &mut StateImpl, _: &EnvImpl, _: &mut Rnd) {
             state.c -= self.b;
         }
 
@@ -77,16 +80,131 @@ mod tests {
         ]);
         let mutator = Mutator::new(generator);
         let config = AnnealerConfig {
-            start_temp: 1e1,
-            end_temp: 1e-3,
-            is_maximize: false,
+            scheduler: ExpScheduler::new(1e1, 1e-3),
+            criterion: HillClimbingCriterion::new(false),
             iteration: 1000,
             log_interval: 100,
         };
-        let mut annealer = Annealer::new(state, env, mutator, config);
+        let rng = Rnd::new(42);
+        let mut annealer = Annealer::new(state, env, mutator, config, rng);
         annealer.run();
 
-        let (state, env) = (annealer.state, annealer.env);
+        let (mut state, env) = (annealer.state, annealer.env);
         assert_eq!(state.calc_score(&env), 0.);
+    }
+}
+
+#[cfg(test)]
+mod test_knapsack {
+    use crate::annealer::annealer::*;
+    use crate::annealer::components::{
+        ExpScheduler, HillClimbingCriterion, Mutator, WeightedNeighborGenerator,
+    };
+    use crate::annealer::types::*;
+    use crate::neighbor_impl;
+    use crate::utils::rnd::Rnd;
+
+    struct StateImpl {
+        value_sum: f64,
+        weight_sum: f64,
+        used: Vec<bool>,
+    }
+
+    impl State<EnvImpl> for StateImpl {
+        fn get_score(&mut self, env: &EnvImpl) -> f64 {
+            if self.weight_sum > env.weight_limit {
+                return 0.;
+            }
+            self.value_sum
+        }
+
+        fn calc_score(&mut self, env: &EnvImpl) -> f64 {
+            self.value_sum = 0.;
+            self.weight_sum = 0.;
+
+            for (used, &(weight, value)) in self.used.iter().zip(&env.items) {
+                if *used {
+                    self.value_sum += value;
+                    self.weight_sum += weight;
+                }
+            }
+
+            self.get_score(env)
+        }
+    }
+
+    struct EnvImpl {
+        items: Vec<(f64, f64)>,
+        weight_limit: f64,
+    }
+
+    impl Env for EnvImpl {}
+
+    struct ToggleOne {
+        i: Option<usize>,
+    }
+
+    impl ToggleOne {
+        fn generate() -> ToggleOne {
+            ToggleOne { i: None }
+        }
+
+        fn apply(&mut self, state: &mut StateImpl, env: &EnvImpl, rnd: &mut Rnd) {
+            self.i = Some(rnd.gen_index(env.items.len()));
+            let i = self.i.unwrap();
+            if state.used[i] {
+                state.weight_sum -= env.items[i].0;
+                state.value_sum -= env.items[i].1;
+            } else {
+                state.weight_sum += env.items[i].0;
+                state.value_sum += env.items[i].1;
+            }
+            state.used[i] = !state.used[i];
+        }
+
+        fn revert(&mut self, state: &mut StateImpl, env: &EnvImpl, _: &mut Rnd) {
+            let i = self.i.unwrap();
+            if state.used[i] {
+                state.weight_sum -= env.items[i].0;
+                state.value_sum -= env.items[i].1;
+            } else {
+                state.weight_sum += env.items[i].0;
+                state.value_sum += env.items[i].1;
+            }
+            state.used[i] = !state.used[i];
+        }
+
+        fn tag(&self) -> &'static str {
+            "ToggleOne"
+        }
+    }
+
+    neighbor_impl!(StateImpl, EnvImpl, ToggleOne);
+
+    #[test]
+    fn test_run() {
+        let env = EnvImpl {
+            items: vec![(1., 1.), (2., 2.), (3., 3.), (4., 4.), (5., 5.)],
+            weight_limit: 10.,
+        };
+        let state = StateImpl {
+            value_sum: 0.,
+            weight_sum: 0.,
+            used: vec![false; env.items.len()],
+        };
+        let generator = WeightedNeighborGenerator::new(vec![(Neighbor::ToggleOne, 0.8)]);
+        let mutator = Mutator::new(generator);
+        let config = AnnealerConfig {
+            scheduler: ExpScheduler::new(1e1, 1e-3),
+            criterion: HillClimbingCriterion::new(true),
+            iteration: 1000,
+            log_interval: 100,
+        };
+        let rng = Rnd::new(42);
+        let mut annealer = Annealer::new(state, env, mutator, config, rng);
+        annealer.run();
+
+        let (mut state, env) = (annealer.state, annealer.env);
+        assert_eq!(state.calc_score(&env), 10.);
     }
 }

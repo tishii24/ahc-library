@@ -1,9 +1,13 @@
-use crate::annealer::types::{NeighborGenerator, NeighborHandler, NeighborType};
+use crate::{
+    annealer::types::{Criterion, NeighborGenerator, NeighborHandler, NeighborType, Scheduler},
+    utils::rnd::Rnd,
+};
 
 pub struct WeightedNeighborGenerator<N>
 where
     N: NeighborType,
 {
+    // alias: WeightedAliasIndex<f64>,
     neighbors: Vec<(N, f32)>,
 }
 
@@ -23,6 +27,68 @@ where
     fn generate(&self, _progress: f64) -> N::H {
         // TODO: improve
         self.neighbors[0].0.generate()
+    }
+}
+
+pub struct HillClimbingCriterion {
+    is_maximize: bool,
+}
+
+impl HillClimbingCriterion {
+    pub fn new(is_maximize: bool) -> Self {
+        HillClimbingCriterion { is_maximize }
+    }
+}
+
+impl Criterion for HillClimbingCriterion {
+    fn adopt(&self, cur_score: f64, new_score: f64, _: f64, _: f64, _: &mut Rnd) -> bool {
+        if self.is_maximize {
+            new_score > cur_score
+        } else {
+            new_score < cur_score
+        }
+    }
+}
+
+pub struct AnnealingCriterion {
+    is_maximize: bool,
+}
+
+impl AnnealingCriterion {
+    pub fn new(is_maximize: bool) -> Self {
+        AnnealingCriterion { is_maximize }
+    }
+}
+
+impl Criterion for AnnealingCriterion {
+    fn adopt(&self, cur_score: f64, new_score: f64, cur_temp: f64, _: f64, rnd: &mut Rnd) -> bool {
+        let sign = self.is_maximize as i32 * 2 - 1;
+        let score_diff = sign as f64 * (new_score - cur_score);
+        if score_diff > 0. {
+            return true;
+        }
+        let prob = (score_diff / cur_temp).exp();
+        rnd.nextf() < prob
+    }
+}
+
+pub struct ExpScheduler {
+    start_temp: f64,
+    end_temp: f64,
+}
+
+impl ExpScheduler {
+    pub fn new(start_temp: f64, end_temp: f64) -> Self {
+        ExpScheduler {
+            start_temp,
+            end_temp,
+        }
+    }
+}
+
+impl Scheduler for ExpScheduler {
+    fn get_temp(&self, progress: f64) -> f64 {
+        self.start_temp.powf(1. - progress) * self.end_temp.powf(progress)
     }
 }
 
@@ -52,9 +118,10 @@ where
         state: &mut <N::H as NeighborHandler>::State,
         env: &<N::H as NeighborHandler>::Env,
         progress: f64,
+        rnd: &mut Rnd,
     ) {
-        let n = self.generator.generate(progress);
-        n.apply(state, env);
+        let mut n = self.generator.generate(progress);
+        n.apply(state, env, rnd);
         self.last_neighbor = Some(n);
     }
 
@@ -62,12 +129,13 @@ where
         &mut self,
         state: &mut <N::H as NeighborHandler>::State,
         env: &<N::H as NeighborHandler>::Env,
+        rnd: &mut Rnd,
     ) {
-        let last_neighbor = self
+        let mut last_neighbor = self
             .last_neighbor
             .take()
             .expect("expect last neighbor being set before revert");
-        last_neighbor.revert(state, env);
+        last_neighbor.revert(state, env, rnd);
     }
 
     fn get_last_tag(&self) -> Option<&'static str> {
