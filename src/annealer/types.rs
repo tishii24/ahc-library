@@ -6,12 +6,12 @@ where
 {
     /// `annealer`では最初のイテレーション以外はスコアの取得にこちらを使用される
     /// 差分計算などでスコアを効率的に計算できる場合は、この関数を再定義する
-    fn get_score(&mut self, env: &E) -> f64 {
-        self.calc_score(env)
+    fn get_score(&mut self, env: &E, progress: f64) -> f64 {
+        self.calc_score(env, progress)
     }
 
     /// スコアの完全な計算を行う
-    fn calc_score(&mut self, env: &E) -> f64;
+    fn calc_score(&mut self, env: &E, progress: f64) -> f64;
 }
 
 pub trait Env {}
@@ -65,7 +65,7 @@ macro_rules! neighbor_impl {
             $($variant($variant),)+
         }
 
-        impl crate::annealer::types::NeighborHandler for NeighborHandlerImpl {
+        impl $crate::annealer::types::NeighborHandler for NeighborHandlerImpl {
             type Env = $env_type;
             type State = $state_type;
 
@@ -92,7 +92,7 @@ macro_rules! neighbor_impl {
             $($variant,)+
         }
 
-        impl crate::annealer::types::NeighborType for Neighbor {
+        impl $crate::annealer::types::NeighborType for Neighbor {
             type H = NeighborHandlerImpl;
 
             fn generate(&self) -> Self::H {

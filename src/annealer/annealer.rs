@@ -18,7 +18,7 @@ TODO:
 - 温度自動調整
 */
 
-use std::collections::HashSet;
+use std::collections::BTreeSet;
 
 use crate::annealer::types::{
     Criterion, NeighborGenerator, NeighborHandler, NeighborType, ProgressScheduler, State,
@@ -97,7 +97,7 @@ where
     }
 
     fn step(&mut self, progress: f64) -> StepLog {
-        let cur_score = self.state.get_score(&self.env);
+        let cur_score = self.state.get_score(&self.env, progress);
         let (successed, tag) =
             self.mutator
                 .mutate(&mut self.state, &self.env, progress, &mut self.rnd);
@@ -112,7 +112,7 @@ where
             };
         }
 
-        let new_score = self.state.get_score(&self.env);
+        let new_score = self.state.get_score(&self.env, progress);
         let score_delta = new_score - cur_score;
         let cur_temp = self.temperature.get_temp(progress);
         let adopt = self
@@ -213,14 +213,7 @@ impl AnnealingLogStore {
         let valid_steps = valid_logs.len();
         let initial_score = self.logs.first().map_or(0.0, |log| log.score);
         let final_score = self.logs.last().map_or(0.0, |log| log.score);
-        let mut neighbor_tags = self
-            .logs
-            .iter()
-            .map(|log| log.tag)
-            .collect::<HashSet<_>>()
-            .into_iter()
-            .collect::<Vec<_>>();
-        neighbor_tags.sort();
+        let neighbor_tags = self.logs.iter().map(|log| log.tag).collect::<BTreeSet<_>>();
 
         eprintln!();
         eprintln!("================== annealing results ==================");

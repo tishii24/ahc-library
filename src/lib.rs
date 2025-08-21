@@ -1,4 +1,4 @@
 #![allow(dead_code)]
 
-mod annealer;
-mod utils;
+pub mod annealer;
+pub mod utils;

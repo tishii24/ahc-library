@@ -15,7 +15,7 @@ mod test_single_variable {
     }
 
     impl State<EnvImpl> for StateImpl {
-        fn calc_score(&mut self, env: &EnvImpl) -> f64 {
+        fn calc_score(&mut self, env: &EnvImpl, _: f64) -> f64 {
             (self.c - env.d).powf(2.)
         }
     }
@@ -95,7 +95,7 @@ mod test_single_variable {
         annealer.run();
 
         let (mut state, env, statistics) = (annealer.state, annealer.env, annealer.log_store);
-        assert_eq!(state.calc_score(&env), 0.);
+        assert_eq!(state.calc_score(&env, 0.), 0.);
         statistics.print();
     }
 }
@@ -119,14 +119,14 @@ mod test_knapsack {
     }
 
     impl State<EnvImpl> for StateImpl {
-        fn get_score(&mut self, env: &EnvImpl) -> f64 {
+        fn get_score(&mut self, env: &EnvImpl, _: f64) -> f64 {
             if self.weight_sum > env.weight_limit {
                 return 0.;
             }
             self.value_sum
         }
 
-        fn calc_score(&mut self, env: &EnvImpl) -> f64 {
+        fn calc_score(&mut self, env: &EnvImpl, progress: f64) -> f64 {
             self.value_sum = 0.;
             self.weight_sum = 0.;
 
@@ -137,7 +137,7 @@ mod test_knapsack {
                 }
             }
 
-            self.get_score(env)
+            self.get_score(env, progress)
         }
     }
 
@@ -215,7 +215,7 @@ mod test_knapsack {
         annealer.run();
 
         let (mut state, env, statistics) = (annealer.state, annealer.env, annealer.log_store);
-        assert_eq!(state.calc_score(&env), 10.);
+        assert_eq!(state.calc_score(&env, 1.), 10.);
         statistics.print();
     }
 }
