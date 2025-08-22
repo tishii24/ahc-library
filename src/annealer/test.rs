@@ -10,12 +10,13 @@ mod test_single_variable {
     use crate::neighbor_impl;
     use crate::utils::rnd::Rnd;
 
+    #[derive(Clone)]
     struct StateImpl {
         c: f64,
     }
 
     impl State<EnvImpl> for StateImpl {
-        fn calc_score(&mut self, env: &EnvImpl, _: f64) -> f64 {
+        fn get_score(&mut self, env: &EnvImpl, _: f64) -> f64 {
             (self.c - env.d).powf(2.)
         }
     }
@@ -31,7 +32,7 @@ mod test_single_variable {
     }
 
     impl NeighborA {
-        fn generate() -> NeighborA {
+        fn setup() -> NeighborA {
             NeighborA { a: 1. }
         }
 
@@ -54,7 +55,7 @@ mod test_single_variable {
     }
 
     impl NeighborB {
-        fn generate() -> NeighborB {
+        fn setup() -> NeighborB {
             NeighborB { b: 1. }
         }
 
@@ -90,12 +91,13 @@ mod test_single_variable {
             IterationProgressScheduler::new(1_000),
             HillClimbingCriterion::new(false),
             ExpTemperatureScheduler::new(1e0, 1e-4),
+            vec![],
             AnnealerConfig {},
         );
         annealer.run();
 
         let (mut state, env, statistics) = (annealer.state, annealer.env, annealer.log_store);
-        assert_eq!(state.calc_score(&env, 0.), 0.);
+        assert_eq!(state.get_score(&env, 0.), 0.);
         statistics.print();
     }
 }
@@ -112,6 +114,7 @@ mod test_knapsack {
     use crate::neighbor_impl;
     use crate::utils::rnd::Rnd;
 
+    #[derive(Clone)]
     struct StateImpl {
         value_sum: f64,
         weight_sum: f64,
@@ -124,20 +127,6 @@ mod test_knapsack {
                 return 0.;
             }
             self.value_sum
-        }
-
-        fn calc_score(&mut self, env: &EnvImpl, progress: f64) -> f64 {
-            self.value_sum = 0.;
-            self.weight_sum = 0.;
-
-            for (used, &(weight, value)) in self.used.iter().zip(&env.items) {
-                if *used {
-                    self.value_sum += value;
-                    self.weight_sum += weight;
-                }
-            }
-
-            self.get_score(env, progress)
         }
     }
 
@@ -153,7 +142,7 @@ mod test_knapsack {
     }
 
     impl ToggleOne {
-        fn generate() -> ToggleOne {
+        fn setup() -> ToggleOne {
             ToggleOne { i: None }
         }
 
@@ -210,12 +199,13 @@ mod test_knapsack {
             SecondProgressScheduler::new(0.1),
             AnnealingCriterion::new(true),
             ExpTemperatureScheduler::new(1e0, 1e-4),
+            vec![],
             AnnealerConfig {},
         );
         annealer.run();
 
         let (mut state, env, statistics) = (annealer.state, annealer.env, annealer.log_store);
-        assert_eq!(state.calc_score(&env, 1.), 10.);
+        assert_eq!(state.get_score(&env, 1.), 10.);
         statistics.print();
     }
 }

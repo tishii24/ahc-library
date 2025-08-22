@@ -1,3 +1,5 @@
+use crate::utils::rnd::Rnd;
+
 #[derive(Debug, Clone)]
 pub struct IndexSet {
     que: Vec<usize>,
@@ -41,6 +43,14 @@ impl IndexSet {
 
     pub fn contains(&self, v: usize) -> bool {
         self.pos[v] != !0
+    }
+
+    pub fn size(&self) -> usize {
+        self.que.len()
+    }
+
+    pub fn get_random(&self, rnd: &mut Rnd) -> usize {
+        self.que[rnd.gen_index(self.que.len())]
     }
 
     pub fn iter(&self) -> impl Iterator<Item = &usize> {

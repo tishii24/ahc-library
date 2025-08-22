@@ -1,17 +1,11 @@
 use crate::utils::rnd::Rnd;
 
-pub trait State<E>
+pub trait State<E>: Clone
 where
     E: Env,
 {
-    /// `annealer`では最初のイテレーション以外はスコアの取得にこちらを使用される
-    /// 差分計算などでスコアを効率的に計算できる場合は、この関数を再定義する
-    fn get_score(&mut self, env: &E, progress: f64) -> f64 {
-        self.calc_score(env, progress)
-    }
-
-    /// スコアの完全な計算を行う
-    fn calc_score(&mut self, env: &E, progress: f64) -> f64;
+    /// スコアを取得する関数
+    fn get_score(&mut self, env: &E, progress: f64) -> f64;
 }
 
 pub trait Env {}
@@ -27,7 +21,7 @@ pub trait NeighborHandler {
 
 pub trait NeighborType {
     type H: NeighborHandler;
-    fn generate(&self) -> Self::H;
+    fn setup(&self) -> Self::H;
 }
 
 pub trait NeighborGenerator<N>
@@ -56,6 +50,15 @@ pub trait ProgressScheduler {
     fn start(&mut self) {}
     fn step(&mut self) {}
     fn get_progress(&self) -> f64;
+}
+
+pub trait Callback<S, E>
+where
+    S: State<E>,
+    E: Env,
+{
+    fn on_before_step(&mut self, _step: usize, _progreess: f64, _state: &mut S, _env: &E) {}
+    fn on_after_step(&mut self, _step: usize, _progreess: f64, _state: &mut S, _env: &E) {}
 }
 
 #[macro_export]
@@ -95,9 +98,9 @@ macro_rules! neighbor_impl {
         impl $crate::annealer::types::NeighborType for Neighbor {
             type H = NeighborHandlerImpl;
 
-            fn generate(&self) -> Self::H {
+            fn setup(&self) -> Self::H {
                 match self {
-                    $(Self::$variant => NeighborHandlerImpl::$variant($variant::generate()),)+
+                    $(Self::$variant => NeighborHandlerImpl::$variant($variant::setup()),)+
                 }
             }
         }

@@ -32,11 +32,11 @@ pub mod neighbor_generator {
     where
         N: NeighborType,
     {
-        fn generate(&self, _progress: f64, rnd: &mut Rnd) -> N::H {
+        fn generate(&self, _: f64, rnd: &mut Rnd) -> N::H {
             let p = rnd.nextf();
             for (n, cum_weight) in self.neighbors.iter() {
                 if p < *cum_weight {
-                    return n.generate();
+                    return n.setup();
                 }
             }
             unreachable!()
@@ -169,6 +169,65 @@ pub mod progress_scheduler {
 
         fn get_progress(&self) -> f64 {
             (time::elapsed_seconds() - self.start_time) / self.seconds
+        }
+    }
+}
+
+pub mod callback {
+    use crate::annealer::types::{Callback, Env, State};
+    use std::marker::PhantomData;
+
+    pub struct RestoreBestStateCallback<S, E>
+    where
+        S: State<E>,
+        E: Env,
+    {
+        last_update_step: usize,
+        patience: usize,
+        best_state: Option<S>,
+        is_maximize: bool,
+        _phantom: PhantomData<E>,
+    }
+
+    impl<S, E> RestoreBestStateCallback<S, E>
+    where
+        S: State<E>,
+        E: Env,
+    {
+        pub fn new(patience: usize, is_maximize: bool) -> Self {
+            RestoreBestStateCallback {
+                last_update_step: 0,
+                patience,
+                best_state: None,
+                is_maximize,
+                _phantom: PhantomData,
+            }
+        }
+    }
+
+    impl<S, E> Callback<S, E> for RestoreBestStateCallback<S, E>
+    where
+        S: State<E>,
+        E: Env,
+    {
+        fn on_after_step(&mut self, step: usize, progress: f64, state: &mut S, env: &E) {
+            if self.best_state.as_mut().is_none_or(|s| {
+                let cur_score = s.get_score(env, progress);
+                let new_score = state.get_score(env, progress);
+
+                self.is_maximize == (new_score > cur_score)
+            }) {
+                self.best_state = Some(state.clone());
+                self.last_update_step = step;
+                return;
+            };
+
+            if step < self.last_update_step + self.patience {
+                return;
+            }
+
+            *state = self.best_state.clone().unwrap();
+            self.last_update_step = step;
         }
     }
 }

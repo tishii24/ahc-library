@@ -1,28 +1,8 @@
-/*
-TODO:
-- Op
-- ベスト解出力
-- キック
-- デバッグモード
-    - 差分計算のチェック
-    - ロガーの無効化
-- ベスト解からのやり直し
-- 時間の取得間隔を設定
-- ロガー
-    - スコアの遷移
-
-- 近傍確率の時間に応じた調整
-- 近傍ごとの受諾確率調整
-- [焼きなまし法での評価関数の打ち切り](https://qiita.com/not522/items/cd20b87157d15850d31c)
-
-- 温度自動調整
-*/
-
 use std::collections::BTreeSet;
 
 use crate::annealer::types::{
-    Criterion, NeighborGenerator, NeighborHandler, NeighborType, ProgressScheduler, State,
-    TemperatureScheduler,
+    Callback, Criterion, NeighborGenerator, NeighborHandler, NeighborType, ProgressScheduler,
+    State, TemperatureScheduler,
 };
 use crate::utils::rnd::Rnd;
 
@@ -44,6 +24,8 @@ where
     temperature: T,
     progress: P,
     rnd: Rnd,
+    callbacks:
+        Vec<Box<dyn Callback<<N::H as NeighborHandler>::State, <N::H as NeighborHandler>::Env>>>,
     config: AnnealerConfig,
 }
 
@@ -62,6 +44,9 @@ where
         progress: P,
         criterion: C,
         temperature: T,
+        callbacks: Vec<
+            Box<dyn Callback<<N::H as NeighborHandler>::State, <N::H as NeighborHandler>::Env>>,
+        >,
         config: AnnealerConfig,
     ) -> Annealer<G, N, C, T, P> {
         Annealer {
@@ -73,6 +58,7 @@ where
             criterion,
             temperature,
             rnd: Rnd::new(24),
+            callbacks,
             config,
         }
     }
@@ -80,20 +66,27 @@ where
     pub fn run(&mut self) {
         self.progress.start();
 
+        let mut cur_step = 0;
         loop {
             let progress = self.progress.get_progress();
             if progress >= 1. {
                 break;
             }
 
+            for callback in &mut self.callbacks {
+                callback.on_before_step(cur_step, progress, &mut self.state, &self.env);
+            }
+
             let step_log = self.step(progress);
             self.log_store.send_log(step_log);
             self.progress.step();
-        }
-    }
 
-    fn cur_step(&self) -> usize {
-        self.log_store.logs.len()
+            for callback in &mut self.callbacks {
+                callback.on_after_step(cur_step, progress, &mut self.state, &self.env);
+            }
+
+            cur_step += 1;
+        }
     }
 
     fn step(&mut self, progress: f64) -> StepLog {
@@ -216,7 +209,7 @@ impl AnnealingLogStore {
         let neighbor_tags = self.logs.iter().map(|log| log.tag).collect::<BTreeSet<_>>();
 
         eprintln!();
-        eprintln!("================== annealing results ==================");
+        eprintln!("======================== annealing results ========================");
         eprintln!("total steps:   {:8}", total_steps);
         eprintln!(
             "valid steps:   {:8} ({:5.2}%)",
@@ -228,6 +221,7 @@ impl AnnealingLogStore {
         eprintln!("neighbors:");
         for tag in neighbor_tags {
             let tag_steps = self.logs.iter().filter(|log| log.tag == tag).count();
+            let valid_steps = valid_logs.iter().filter(|log| log.tag == tag).count();
             let adopted_steps = valid_logs
                 .iter()
                 .filter(|log| log.tag == tag && log.adopt)
@@ -238,15 +232,17 @@ impl AnnealingLogStore {
                 .map(|log| log.score_delta)
                 .sum::<f64>()
                 / adopted_steps.max(1) as f64;
+            let valid_ratio = valid_steps as f64 / tag_steps.max(1) as f64;
             eprintln!(
-                "  {:<15}: {:5}/{:<5} ({:5.2}%, Δ={:8.2})",
+                "  {:<8}: {:5}/{:<5} (adopt={:6.2}%, valid={:6.2}%, Δ={:8.2})",
                 tag,
                 adopted_steps,
                 tag_steps,
                 adopted_steps as f64 / tag_steps as f64 * 100.0,
+                valid_ratio,
                 delta_mean,
             );
         }
-        eprintln!("=======================================================");
+        eprintln!("===================================================================");
     }
 }
