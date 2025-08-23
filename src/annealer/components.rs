@@ -182,10 +182,10 @@ pub mod callback {
         S: State<E>,
         E: Env,
     {
-        last_update_step: usize,
-        patience: usize,
-        best_state: Option<S>,
         is_maximize: bool,
+        patience: usize,
+        last_update_step: usize,
+        best_state: Option<S>,
         _phantom: PhantomData<E>,
     }
 
@@ -228,6 +228,54 @@ pub mod callback {
 
             *state = self.best_state.clone().unwrap();
             self.last_update_step = step;
+        }
+    }
+
+    pub struct ReturnBestStateCallback<S, E>
+    where
+        S: State<E>,
+        E: Env,
+    {
+        is_maximize: bool,
+        best_state: Option<S>,
+        _phantom: PhantomData<E>,
+    }
+
+    impl<S, E> ReturnBestStateCallback<S, E>
+    where
+        S: State<E>,
+        E: Env,
+    {
+        pub fn new(is_maximize: bool) -> Self {
+            ReturnBestStateCallback {
+                best_state: None,
+                is_maximize,
+                _phantom: PhantomData,
+            }
+        }
+    }
+
+    impl<S, E> Callback<S, E> for ReturnBestStateCallback<S, E>
+    where
+        S: State<E>,
+        E: Env,
+    {
+        fn on_after_step(&mut self, _: usize, progress: f64, state: &mut S, env: &E) {
+            if self.best_state.as_mut().is_none_or(|s| {
+                let cur_score = s.get_score(env, progress);
+                let new_score = state.get_score(env, progress);
+
+                self.is_maximize == (new_score > cur_score)
+            }) {
+                self.best_state = Some(state.clone());
+                return;
+            };
+        }
+
+        fn on_finish(&mut self, state: &mut S, _env: &E) {
+            if let Some(best_state) = self.best_state.as_mut() {
+                *state = best_state.clone();
+            }
         }
     }
 }

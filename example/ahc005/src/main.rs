@@ -1,6 +1,9 @@
 use std::collections::HashMap;
 
-use ahc_library::annealer::components::callback::RestoreBestStateCallback;
+use ahc_library::annealer::annealer::AnnealerMode;
+use ahc_library::annealer::components::callback::{
+    RestoreBestStateCallback, ReturnBestStateCallback,
+};
 use ahc_library::annealer::prelude::*;
 use ahc_library::annealer::types::Callback;
 use ahc_library::utils::index_set::IndexSet;
@@ -433,8 +436,10 @@ fn main() {
         (Neighbor::NeighborInsert, 0.4),
     ]);
     let mutator = Mutator::new(generator);
-    let callbacks: Vec<Box<dyn Callback<StateImpl, EnvImpl>>> =
-        vec![Box::new(RestoreBestStateCallback::new(100_000, false))];
+    let callbacks: Vec<Box<dyn Callback<StateImpl, EnvImpl>>> = vec![
+        // Box::new(RestoreBestStateCallback::new(100_000, false)),
+        // Box::new(ReturnBestStateCallback::new(false)),
+    ];
     let mut annealer = Annealer::new(
         state,
         env,
@@ -443,11 +448,14 @@ fn main() {
         AnnealingCriterion::new(false),
         ExpTemperatureScheduler::new(1e2, 1e-1),
         callbacks,
-        AnnealerConfig {},
+        AnnealerConfig {
+            mode: AnnealerMode::Release,
+        },
     );
     annealer.run();
-    let (state, env, log_store) = (annealer.state, annealer.env, annealer.log_store);
-    log_store.print();
+
+    let (state, env, logger) = (annealer.state, annealer.env, annealer.log_store);
+    logger.print();
 
     output(&state, &env);
 }

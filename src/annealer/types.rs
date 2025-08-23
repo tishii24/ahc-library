@@ -57,8 +57,10 @@ where
     S: State<E>,
     E: Env,
 {
-    fn on_before_step(&mut self, _step: usize, _progreess: f64, _state: &mut S, _env: &E) {}
-    fn on_after_step(&mut self, _step: usize, _progreess: f64, _state: &mut S, _env: &E) {}
+    fn on_start(&mut self, _state: &mut S, _env: &E) {}
+    fn on_before_step(&mut self, _step: usize, _progress: f64, _state: &mut S, _env: &E) {}
+    fn on_after_step(&mut self, _step: usize, _progress: f64, _state: &mut S, _env: &E) {}
+    fn on_finish(&mut self, _state: &mut S, _env: &E) {}
 }
 
 #[macro_export]

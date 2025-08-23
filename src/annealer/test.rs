@@ -92,7 +92,9 @@ mod test_single_variable {
             HillClimbingCriterion::new(false),
             ExpTemperatureScheduler::new(1e0, 1e-4),
             vec![],
-            AnnealerConfig {},
+            AnnealerConfig {
+                mode: AnnealerMode::Release,
+            },
         );
         annealer.run();
 
@@ -200,7 +202,9 @@ mod test_knapsack {
             AnnealingCriterion::new(true),
             ExpTemperatureScheduler::new(1e0, 1e-4),
             vec![],
-            AnnealerConfig {},
+            AnnealerConfig {
+                mode: AnnealerMode::Release,
+            },
         );
         annealer.run();
 

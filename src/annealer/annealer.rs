@@ -6,7 +6,15 @@ use crate::annealer::types::{
 };
 use crate::utils::rnd::Rnd;
 
-pub struct AnnealerConfig {}
+#[derive(PartialEq, Eq, Clone, Copy, Debug)]
+pub enum AnnealerMode {
+    Debug,
+    Release,
+}
+
+pub struct AnnealerConfig {
+    pub mode: AnnealerMode,
+}
 
 pub struct Annealer<G, N, C, T, P>
 where
@@ -18,7 +26,7 @@ where
 {
     pub state: <N::H as NeighborHandler>::State,
     pub env: <N::H as NeighborHandler>::Env,
-    pub log_store: AnnealingLogStore,
+    pub log_store: AnnealingLogger,
     mutator: Mutator<G, N>,
     criterion: C,
     temperature: T,
@@ -52,7 +60,7 @@ where
         Annealer {
             state,
             env,
-            log_store: AnnealingLogStore::new(),
+            log_store: AnnealingLogger::new(),
             mutator,
             progress,
             criterion,
@@ -66,8 +74,11 @@ where
     pub fn run(&mut self) {
         self.progress.start();
 
-        let mut cur_step = 0;
-        loop {
+        for callback in &mut self.callbacks {
+            callback.on_start(&mut self.state, &self.env);
+        }
+
+        for cur_step in 0.. {
             let progress = self.progress.get_progress();
             if progress >= 1. {
                 break;
@@ -78,14 +89,20 @@ where
             }
 
             let step_log = self.step(progress);
-            self.log_store.send_log(step_log);
+
+            if self.config.mode != AnnealerMode::Release {
+                self.log_store.send(step_log);
+            }
+
             self.progress.step();
 
             for callback in &mut self.callbacks {
                 callback.on_after_step(cur_step, progress, &mut self.state, &self.env);
             }
+        }
 
-            cur_step += 1;
+        for callback in &mut self.callbacks {
+            callback.on_finish(&mut self.state, &self.env);
         }
     }
 
@@ -187,16 +204,16 @@ struct StepLog {
     score_delta: f64,
 }
 
-pub struct AnnealingLogStore {
+pub struct AnnealingLogger {
     logs: Vec<StepLog>,
 }
 
-impl AnnealingLogStore {
+impl AnnealingLogger {
     fn new() -> Self {
-        AnnealingLogStore { logs: Vec::new() }
+        AnnealingLogger { logs: Vec::new() }
     }
 
-    fn send_log(&mut self, step_log: StepLog) {
+    fn send(&mut self, step_log: StepLog) {
         self.logs.push(step_log);
     }
 
