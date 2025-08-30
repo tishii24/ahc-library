@@ -211,16 +211,19 @@ pub mod callback {
         E: Env,
     {
         fn on_after_step(&mut self, step: usize, progress: f64, state: &mut S, env: &E) {
-            if self.best_state.as_mut().is_none_or(|s| {
-                let cur_score = s.get_score(env, progress);
-                let new_score = state.get_score(env, progress);
-
-                self.is_maximize == (new_score > cur_score)
-            }) {
+            let should_update = match &mut self.best_state {
+                None => true,
+                Some(s) => {
+                    let cur_score = s.get_score(env, progress);
+                    let new_score = state.get_score(env, progress);
+                    self.is_maximize == (new_score > cur_score)
+                }
+            };
+            if should_update {
                 self.best_state = Some(state.clone());
                 self.last_update_step = step;
                 return;
-            };
+            }
 
             if step < self.last_update_step + self.patience {
                 return;
@@ -261,15 +264,18 @@ pub mod callback {
         E: Env,
     {
         fn on_after_step(&mut self, _: usize, progress: f64, state: &mut S, env: &E) {
-            if self.best_state.as_mut().is_none_or(|s| {
-                let cur_score = s.get_score(env, progress);
-                let new_score = state.get_score(env, progress);
-
-                self.is_maximize == (new_score > cur_score)
-            }) {
+            let should_update = match &mut self.best_state {
+                None => true,
+                Some(s) => {
+                    let cur_score = s.get_score(env, progress);
+                    let new_score = state.get_score(env, progress);
+                    self.is_maximize == (new_score > cur_score)
+                }
+            };
+            if should_update {
                 self.best_state = Some(state.clone());
                 return;
-            };
+            }
         }
 
         fn on_finish(&mut self, state: &mut S, _env: &E) {

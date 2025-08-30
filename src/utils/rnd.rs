@@ -46,7 +46,7 @@ impl Rnd {
     }
 
     #[inline(always)]
-    pub fn shuffle(&mut self, v: &mut [usize]) {
+    pub fn shuffle<T>(&mut self, v: &mut [T]) {
         let n = v.len();
         for i in (1..n).rev() {
             let j = self.gen_range(0, i + 1);

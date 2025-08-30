@@ -1,20 +1,25 @@
-## アルゴリズム
+# ahc-library
 
-- annealer.rs
-- beamsearch.rs
+## Usage
 
-## データ構造
+```rust
+// ahcXXX/src/main.rs
+use ahc_library::utils::time;
 
-- indexset.rs
-- fastcleararray.rs
-    - 1d, 2d
-- 2darray.rs
-- pqueue.rs
-    - https://github.com/tidwall/pqueue/blob/master/src/lib.rs
+fn main() {
+    time::start_clock();
+    println!("Hello with elapsed_time: {:.5}", time::elapsed_seconds());
+}
+```
+
+```shell
+cd ahcXXX
+PATH_AHC_LIBRARY=path/to/ahc-library
+uv run $PATH_AHC_LIBRARY/scripts/expander.py --ahc_library_path=$PATH_AHC_LIBRARY --solution_path=.
+```
+
 
 ## TODO:
-
-- pahcer + optuna用のutil
 
 - Loggerの実装
     - スコア遷移
@@ -33,3 +38,7 @@
 
 - 時間の取得間隔を設定
 - 温度自動調整
+
+- beamsearch.rs
+- pqueue.rs
+    - https://github.com/tidwall/pqueue/blob/master/src/lib.rs

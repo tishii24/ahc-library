@@ -1,9 +1,6 @@
 use std::collections::HashMap;
 
 use ahc_library::annealer::annealer::AnnealerMode;
-use ahc_library::annealer::components::callback::{
-    RestoreBestStateCallback, ReturnBestStateCallback,
-};
 use ahc_library::annealer::prelude::*;
 use ahc_library::annealer::types::Callback;
 use ahc_library::utils::index_set::IndexSet;
@@ -25,6 +22,7 @@ impl Input {
             s: (usize, usize),
             c: [String; n],
         }
+
         let c = c
             .into_iter()
             .map(|c| c.chars().into_iter().map(|e| e.to_digit(10)).collect())
@@ -454,7 +452,7 @@ fn main() {
     );
     annealer.run();
 
-    let (state, env, logger) = (annealer.state, annealer.env, annealer.log_store);
+    let (state, env, logger) = (annealer.state, annealer.env, annealer.logger);
     logger.print();
 
     output(&state, &env);

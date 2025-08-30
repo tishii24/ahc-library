@@ -31,7 +31,7 @@ args = ["-f", "./ahc005"]
 program = "mv"
 args = ["./target/release/ahc005", "./ahc005"]
 
-# On macOS, there’s a possibility of SIGKILL or other issues occurring, 
+# On macOS, there’s a possibility of SIGKILL or other issues occurring,
 # so it’s better to build the visualizer in advance
 # rather than running it with cargo run every time.
 

@@ -12,6 +12,18 @@ import tempfile
 import classopt
 
 
+@classopt.classopt(default_long=True)
+class Args:
+    ahc_library_path: str = classopt.config(
+        required=True,
+        help="Path to the AHC library directory",
+    )
+    solution_path: str = classopt.config(
+        required=True,
+        help="Path to the solution directory",
+    )
+
+
 def extract_modules(lib_file: pathlib.Path) -> list[str]:
     modules = []
     with open(lib_file, "r") as f:
@@ -85,7 +97,7 @@ def expand_ahc_library(ahc_library_path: pathlib.Path) -> str:
 
     content = content.replace("crate::", "crate::ahc_library::")
 
-    # マクロはcrate::に置かれるので、特別に置き換える
+    # マクロはcrate::*に置かれるので、特別に置き換える
     # マクロが増えるたびにここに書く必要がある、直したいでござる
     macros = [
         "neighbor_impl",
@@ -131,19 +143,7 @@ def apply_rustfmt(content: str) -> str:
             return f.read()
 
 
-@classopt.classopt(default_long=True)
-class Args:
-    ahc_library_path: str = classopt.config(
-        required=True,
-        help="Path to the AHC library directory",
-    )
-    solution_path: str = classopt.config(
-        required=True,
-        help="Path to the solution directory",
-    )
-
-
-if __name__ == "__main__":
+def main() -> None:
     args = Args.from_args()  # type: ignore
 
     library = expand_ahc_library(pathlib.Path(args.ahc_library_path))
@@ -155,3 +155,7 @@ if __name__ == "__main__":
     submission = apply_rustfmt(submission)
 
     print(submission)
+
+
+if __name__ == "__main__":
+    main()

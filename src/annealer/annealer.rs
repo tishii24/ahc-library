@@ -26,11 +26,11 @@ where
 {
     pub state: <N::H as NeighborHandler>::State,
     pub env: <N::H as NeighborHandler>::Env,
-    pub log_store: AnnealingLogger,
+    pub logger: AnnealingLogger,
     mutator: Mutator<G, N>,
     criterion: C,
-    temperature: T,
-    progress: P,
+    temperature_scheduler: T,
+    progress_scheduler: P,
     rnd: Rnd,
     callbacks:
         Vec<Box<dyn Callback<<N::H as NeighborHandler>::State, <N::H as NeighborHandler>::Env>>>,
@@ -49,9 +49,9 @@ where
         state: <N::H as NeighborHandler>::State,
         env: <N::H as NeighborHandler>::Env,
         mutator: Mutator<G, N>,
-        progress: P,
+        progress_scheduler: P,
         criterion: C,
-        temperature: T,
+        temperature_scheduler: T,
         callbacks: Vec<
             Box<dyn Callback<<N::H as NeighborHandler>::State, <N::H as NeighborHandler>::Env>>,
         >,
@@ -60,11 +60,11 @@ where
         Annealer {
             state,
             env,
-            log_store: AnnealingLogger::new(),
+            logger: AnnealingLogger::new(),
             mutator,
-            progress,
+            progress_scheduler,
             criterion,
-            temperature,
+            temperature_scheduler,
             rnd: Rnd::new(24),
             callbacks,
             config,
@@ -72,14 +72,14 @@ where
     }
 
     pub fn run(&mut self) {
-        self.progress.start();
+        self.progress_scheduler.start();
 
         for callback in &mut self.callbacks {
             callback.on_start(&mut self.state, &self.env);
         }
 
         for cur_step in 0.. {
-            let progress = self.progress.get_progress();
+            let progress = self.progress_scheduler.get_progress();
             if progress >= 1. {
                 break;
             }
@@ -91,10 +91,10 @@ where
             let step_log = self.step(progress);
 
             if self.config.mode != AnnealerMode::Release {
-                self.log_store.send(step_log);
+                self.logger.send(step_log);
             }
 
-            self.progress.step();
+            self.progress_scheduler.step();
 
             for callback in &mut self.callbacks {
                 callback.on_after_step(cur_step, progress, &mut self.state, &self.env);
@@ -124,7 +124,7 @@ where
 
         let new_score = self.state.get_score(&self.env, progress);
         let score_delta = new_score - cur_score;
-        let cur_temp = self.temperature.get_temp(progress);
+        let cur_temp = self.temperature_scheduler.get_temp(progress);
         let adopt = self
             .criterion
             .adopt(cur_score, new_score, cur_temp, progress, &mut self.rnd);

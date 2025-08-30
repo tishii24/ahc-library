@@ -98,7 +98,7 @@ mod test_single_variable {
         );
         annealer.run();
 
-        let (mut state, env, statistics) = (annealer.state, annealer.env, annealer.log_store);
+        let (mut state, env, statistics) = (annealer.state, annealer.env, annealer.logger);
         assert_eq!(state.get_score(&env, 0.), 0.);
         statistics.print();
     }
@@ -208,7 +208,7 @@ mod test_knapsack {
         );
         annealer.run();
 
-        let (mut state, env, statistics) = (annealer.state, annealer.env, annealer.log_store);
+        let (mut state, env, statistics) = (annealer.state, annealer.env, annealer.logger);
         assert_eq!(state.get_score(&env, 1.), 10.);
         statistics.print();
     }

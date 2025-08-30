@@ -57,3 +57,60 @@ impl IndexSet {
         self.que.iter()
     }
 }
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn test_index_set() {
+        let mut s = super::IndexSet::empty(5);
+        assert_eq!(s.size(), 0);
+        assert!(!s.contains(3));
+        s.remove(3);
+        assert_eq!(s.size(), 0);
+        s.add(3);
+        assert_eq!(s.size(), 1);
+        assert!(s.contains(3));
+        s.add(3);
+        assert_eq!(s.size(), 1);
+        assert!(s.contains(3));
+        s.add(1);
+        assert_eq!(s.size(), 2);
+        assert!(s.contains(1));
+        s.remove(3);
+        assert_eq!(s.size(), 1);
+        assert!(!s.contains(3));
+        s.remove(3);
+        assert_eq!(s.size(), 1);
+        assert!(!s.contains(3));
+        s.remove(1);
+        assert_eq!(s.size(), 0);
+        assert!(!s.contains(1));
+    }
+
+    #[test]
+    fn test_index_set_full() {
+        let mut s = super::IndexSet::full(5);
+        assert_eq!(s.size(), 5);
+        assert!(s.contains(3));
+        s.add(3);
+        assert_eq!(s.size(), 5);
+        s.remove(3);
+        assert_eq!(s.size(), 4);
+        assert!(!s.contains(3));
+        s.remove(3);
+        assert_eq!(s.size(), 4);
+        assert!(!s.contains(3));
+        s.remove(1);
+        assert_eq!(s.size(), 3);
+        assert!(!s.contains(1));
+        s.add(3);
+        assert_eq!(s.size(), 4);
+        assert!(s.contains(3));
+        s.add(3);
+        assert_eq!(s.size(), 4);
+        assert!(s.contains(3));
+        s.add(1);
+        assert_eq!(s.size(), 5);
+        assert!(s.contains(1));
+    }
+}

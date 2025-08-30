@@ -1,0 +1,168 @@
+# inspired by https://github.com/terry-u16/pahcer/tree/main/optuna-sample
+
+# /// script
+# dependencies = [
+#   "pyyaml==6.0.1",
+#   "classopt==0.2.1",
+#   "optuna==4.2.1",
+#   "scipy==1.11.4",
+# ]
+# ///
+
+import json
+import math
+import os
+import signal
+import subprocess
+
+import classopt
+import optuna
+import yaml
+
+
+@classopt.classopt(default_long=True)
+class Args:
+    study_name: str = classopt.config(
+        "--study-name", required=True, help="Name of the study"
+    )
+    config_path: str = classopt.config(
+        "--config", required=True, help="Path to config file"
+    )
+
+
+class Objective:
+    def __init__(self, config: dict) -> None:
+        self.config = config
+
+    def __call__(self, trial: optuna.trial.Trial) -> float:
+        params = self.generate_params(trial)
+        env = os.environ.copy()
+        env.update(params)
+
+        scores = []
+
+        cmd = [
+            "pahcer",
+            "run",
+            "--json",
+            "--shuffle",
+            "--no-result-file",
+            "--freeze-best-scores",
+        ]
+
+        if trial.number != 0:
+            cmd.append("--no-compile")
+
+        process = subprocess.Popen(
+            cmd,
+            stdout=subprocess.PIPE,
+            env=env,
+        )
+
+        # see also: https://tech.preferred.jp/ja/blog/wilcoxonpruner/
+        for line in process.stdout:  # type: ignore
+            result = json.loads(line)
+
+            # If an error occurs, stop the process and raise an exception
+            if result["error_message"] != "":
+                process.send_signal(signal.SIGINT)
+                score = 0.0
+            else:
+                score = self.extract_score(result)
+
+            seed = result["seed"]
+            scores.append(score)
+            trial.report(score, seed)
+
+            if trial.should_prune():
+                print(f"Trial {trial.number} pruned.")
+                process.send_signal(signal.SIGINT)
+
+                objective_value = sum(scores) / len(scores)
+                is_better_than_best = (
+                    trial.study.direction == optuna.study.StudyDirection.MINIMIZE
+                    and objective_value < trial.study.best_value
+                ) or (
+                    trial.study.direction == optuna.study.StudyDirection.MAXIMIZE
+                    and objective_value > trial.study.best_value
+                )
+
+                if is_better_than_best:
+                    # Avoid updating the best value
+                    raise optuna.TrialPruned()
+                else:
+                    # It is recommended to return the value of the objective function
+                    # at the current step instead of raising TrialPruned.
+                    # This is a workaround to report the evaluation information
+                    # of the pruned Trial to Optuna.
+                    return sum(scores) / len(scores)
+
+        return sum(scores) / len(scores)
+
+    def extract_score(self, result: dict) -> float:
+        score_type = self.config["settings"]["score_type"]
+        if score_type == "absolute":
+            absolute_score = result["score"]
+            return absolute_score
+        elif score_type == "log10":
+            absolute_score = result["score"]
+            log10_score = math.log10(absolute_score) if absolute_score > 0.0 else 0.0
+            return log10_score
+        elif score_type == "relative":
+            relative_score = result["relative_score"]
+            return relative_score
+        else:
+            raise ValueError(f"Unknown score_type: {score_type}")
+
+    def generate_params(self, trial: optuna.trial.Trial) -> dict[str, str]:
+        params = {}
+        for d in self.config["params"]:
+            if d["type"] == "float":
+                params[d["name"]] = str(
+                    trial.suggest_float(
+                        d["name"],
+                        d["min"],
+                        d["max"],
+                    )
+                )
+            elif d["type"] == "int":
+                params[d["name"]] = str(
+                    trial.suggest_int(
+                        d["name"],
+                        d["min"],
+                        d["max"],
+                    )
+                )
+            else:
+                raise ValueError(f"Unknown param type: {d['type']}")
+
+        return params
+
+
+def run_optuna(config: dict, args: Args) -> None:
+    study = optuna.create_study(
+        direction=config["settings"]["direction"],
+        study_name=args.study_name,
+        pruner=optuna.pruners.WilcoxonPruner(p_threshold=0.02),
+        sampler=optuna.samplers.TPESampler(),
+    )
+    study.optimize(Objective(config=config), timeout=config["settings"]["timeout"])
+
+    print("best params: ", study.best_params)
+    print("best score: ", study.best_value)
+
+
+def main() -> None:
+    args = Args.from_args()  # type: ignore
+
+    with open(args.config_path, "r") as file:
+        config = yaml.safe_load(file)
+
+    print("args:", args)
+    print("config:", config)
+
+    run_optuna(config, args)
+
+
+if __name__ == "__main__":
+    main()
