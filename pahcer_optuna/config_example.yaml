@@ -1,18 +1,24 @@
-optuna:
-  settings:
-    storage: sqlite:///optuna.db
-    direction: maximize
-    score_type: relative
-  pruner:
-    threshold: 0.02
-  params:
-    - name: START_TEMP
-      type: float
-      default: 10.0
-      min: 1.0
-      max: 10000.0
-    - name: END_TEMP
-      type: float
-      default: 1e-1
-      min: 1e-3
-      max: 1e1
+settings:
+  storage: sqlite:///optuna.db
+  direction: maximize
+  score_type: relative
+pruner:
+  threshold: 0.02
+params:
+  - name: START_TEMP
+    type: float
+    default: 10.0
+    min: 1.0
+    max: 10000.0
+  - name: END_TEMP
+    type: float
+    default: 1e-1
+    min: 1e-3
+    max: min(1e-1, params["START_TEMP"])
+  - name: COOLING_RATE
+    type: float
+    default: 0.95
+    min: 0.8
+    max: 0.999
+ignore_params:
+  - COOLING_RATE

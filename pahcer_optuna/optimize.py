@@ -31,6 +31,12 @@ class Args:
     timeout: int = classopt.config(
         "--timeout", default=600, help="Timeout in seconds for the optimization"
     )
+    skip_optimize: bool = classopt.config(
+        "--skip-optimize", action="store_true", help="Skip optimization"
+    )
+    param_file: str = classopt.config(
+        "--param-file", default="params.rs", help="Path to the param file"
+    )
 
 
 class Objective:
@@ -120,26 +126,26 @@ class Objective:
     def generate_params(self, trial: optuna.trial.Trial) -> dict[str, str]:
         params = {}
         for d in self.config["params"]:
+            if d["name"] in self.config["ignore_params"]:
+                params[d["name"]] = d["default"]
+                continue
+
             if d["type"] == "float":
-                params[d["name"]] = str(
-                    trial.suggest_float(
-                        d["name"],
-                        d["min"],
-                        d["max"],
-                    )
+                params[d["name"]] = trial.suggest_float(
+                    d["name"],
+                    eval(d["min"]),
+                    eval(d["max"]),
                 )
             elif d["type"] == "int":
-                params[d["name"]] = str(
-                    trial.suggest_int(
-                        d["name"],
-                        d["min"],
-                        d["max"],
-                    )
+                params[d["name"]] = trial.suggest_int(
+                    d["name"],
+                    eval(d["min"]),
+                    eval(d["max"]),
                 )
             else:
-                raise ValueError(f"Unknown param type: {d['type']}")
+                raise ValueError(f"Unsupported type: {d['type']}")
 
-        return params
+        return {k: str(v) for k, v in params.items()}
 
 
 def run_optuna(config: dict, args: Args) -> None:
@@ -153,20 +159,64 @@ def run_optuna(config: dict, args: Args) -> None:
     )
     study.optimize(Objective(config=config), timeout=args.timeout)
 
-    print("best params: ", study.best_params)
-    print("best score: ", study.best_value)
+
+def generate_impl(study_name: str, config: dict) -> str:
+    def type_to_rust_type(t: str) -> str:
+        if t == "int":
+            return "i64"
+        elif t == "float":
+            return "f64"
+        else:
+            raise ValueError(f"Unsupported type: {t}")
+
+    def get_best_values_from_optuna_study(study_name: str, config: dict) -> dict:
+        study = optuna.load_study(
+            study_name=study_name, storage=config["settings"]["storage"]
+        )
+        return study.best_trial.params
+
+    try:
+        best_params = get_best_values_from_optuna_study(study_name, config)
+    except Exception:
+        best_params = {}
+
+    content = ""
+    content += "params_impl! {\n"
+    for d in config["params"]:
+        t = type_to_rust_type(d["type"])
+        if d["name"] in best_params:
+            value = best_params[d["name"]]
+        else:
+            value = d["default"]
+
+        content += f'\t{d["name"]}: {t} = {value},\n'
+
+    content += "}\n\n"
+
+    return content
 
 
 def main() -> None:
     args = Args.from_args()  # type: ignore
 
     with open(args.config_path, "r") as file:
-        config = yaml.safe_load(file)["optuna"]
+        config = yaml.safe_load(file)
 
     print("args:", args)
     print("config:", config)
 
-    run_optuna(config, args)
+    try:
+        if not args.skip_optimize:
+            run_optuna(config, args)
+        else:
+            print("skip optimization")
+    finally:
+        impl = generate_impl(args.study_name, config)
+        print("impl:")
+        print(impl)
+
+        with open(args.param_file, "w") as f:
+            f.write(impl)
 
 
 if __name__ == "__main__":

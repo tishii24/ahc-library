@@ -17,9 +17,8 @@ macro_rules! params_impl {
             fn load() -> Self {
                 Self {
                     $(
-                        $name: std::env::var(stringify!($name))
-                            .ok()
-                            .and_then(|v| v.parse().ok())
+                        $name: option_env!(stringify!($name))
+                            .map(|v| v.parse::<$type>().unwrap())
                             .unwrap_or($default),
                     )*
                 }
@@ -31,11 +30,11 @@ macro_rules! params_impl {
 #[test]
 fn test_define_params() {
     params_impl! {
-        start_temp: f64 = 1000.0,
-        end_temp: f64 = 1.0,
+        START_TEMP: f64 = 1000.0,
+        END_TEMP: f64 = 1.0,
     }
     let params = Params::load();
     println!("{:?}", params);
-    assert_eq!(params.start_temp, 1000.0);
-    assert_eq!(params.end_temp, 1.0);
+    assert_eq!(params.START_TEMP, 1000.0);
+    assert_eq!(params.END_TEMP, 1.0);
 }

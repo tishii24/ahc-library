@@ -1,6 +1,5 @@
 ## 要件
 
-- パラメータを自動で読み込む
 - コード生成
 
 - gitとの連携
@@ -10,9 +9,15 @@
 
 ```
 pahcer-optuna
-    --workdir=WORKDIR
-    --config=config.yaml
+    --solution_dir=SOLUTION_DIR
+    --work_dir=WORK_DIR
+    --config=CONFIG_FILE
 ```
 
-1. aa
-2. run optimize.py
+## 実装
+
+```sh
+cp $SOLUTION_DIR $WORK_DIR
+
+uv run optimize.py
+```
