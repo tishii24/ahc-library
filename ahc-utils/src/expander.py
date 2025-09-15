@@ -1,9 +1,3 @@
-# /// script
-# dependencies = [
-#   "classopt==0.2.1",
-# ]
-# ///
-
 import pathlib
 import re
 import subprocess

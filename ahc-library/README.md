@@ -2,6 +2,11 @@
 
 ## Usage
 
+```sh
+cargo add --path $PATH_TO_AHC_LIBRARY
+uv tool install $PATH_TO_AHC_LIBRARY/ahc_utils
+```
+
 ```rust
 // ahcXXX/src/main.rs
 use ahc_library::utils::time;

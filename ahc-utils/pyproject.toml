@@ -1,0 +1,20 @@
+[project]
+name = "ahc-utils"
+version = "0.1.0"
+description = "A tool to optimize parameters using pahcer and optuna."
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "pyyaml>=6.0.1",
+    "classopt>=0.2.1",
+    "optuna>=4.2.1",
+    "scipy>=1.11.4",
+    "types-pyyaml>=6.0.12.20250915",
+]
+
+[project.scripts]
+pahcer-optuna = "optimize:main"
+expander = "expander:main"
+
+[tool.uv]
+package = true

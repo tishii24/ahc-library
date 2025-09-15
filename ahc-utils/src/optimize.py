@@ -1,13 +1,6 @@
-# inspired from https://github.com/terry-u16/pahcer/tree/main/optuna-sample
-
-# /// script
-# dependencies = [
-#   "pyyaml==6.0.1",
-#   "classopt==0.2.1",
-#   "optuna==4.2.1",
-#   "scipy==1.11.4",
-# ]
-# ///
+"""
+inspired from https://github.com/terry-u16/pahcer/tree/main/optuna-sample
+"""
 
 import json
 import math
