@@ -1,10 +1,14 @@
 use std::collections::BTreeSet;
 
+use crate::annealer::prelude::{
+    AnnealingCriterion, ExpTemperatureScheduler, IterationProgressScheduler,
+    SecondProgressScheduler,
+};
 use crate::annealer::types::{
     Callback, Criterion, NeighborGenerator, NeighborHandler, NeighborType, ProgressScheduler,
     State, TemperatureScheduler,
 };
-use crate::utils::rnd::Rnd;
+use crate::utils::random::Rnd;
 
 #[derive(PartialEq, Eq, Clone, Copy, Debug)]
 pub enum AnnealerMode {
@@ -14,6 +18,116 @@ pub enum AnnealerMode {
 
 pub struct AnnealerConfig {
     pub mode: AnnealerMode,
+    pub start_count: usize,
+}
+
+/// Scheduler used for annealing process
+///
+/// Usage:
+/// ```ignore
+/// let mut scheduler = AnnealerScheduler::default(1e0, 1e-4, 1.0, true);
+/// scheduler.start();
+/// while scheduler.in_progress() {
+///     let cur_score = state.get_score();
+///
+///     // do something
+///
+///     let new_score = state.calc_score();
+///
+///     if scheduler.adopt(cur_score, new_score) {
+///         // adopt
+///     } else {
+///         // revert
+///     }
+///     scheduler.step();
+/// }
+/// ```
+pub struct AnnealerScheduler<C, T, P>
+where
+    C: Criterion,
+    T: TemperatureScheduler,
+    P: ProgressScheduler,
+{
+    criterion: C,
+    temperature_scheduler: T,
+    progress_scheduler: P,
+    rnd: Rnd,
+}
+
+impl<C, T, P> AnnealerScheduler<C, T, P>
+where
+    C: Criterion,
+    T: TemperatureScheduler,
+    P: ProgressScheduler,
+{
+    pub fn new(criterion: C, temperature_scheduler: T, progress_scheduler: P) -> Self {
+        AnnealerScheduler {
+            criterion,
+            temperature_scheduler,
+            progress_scheduler,
+            rnd: Rnd::new(24),
+        }
+    }
+
+    pub fn start(&mut self) {
+        self.progress_scheduler.start();
+    }
+
+    pub fn adopt(&mut self, cur_score: f64, new_score: f64) -> bool {
+        let progress = self.get_progress();
+        let cur_temp = self.temperature_scheduler.get_temp(progress);
+        let adopt = self
+            .criterion
+            .adopt(cur_score, new_score, cur_temp, progress, &mut self.rnd);
+        adopt
+    }
+
+    pub fn step(&mut self) {
+        self.progress_scheduler.step();
+    }
+
+    pub fn get_progress(&self) -> f64 {
+        self.progress_scheduler.get_progress()
+    }
+
+    pub fn in_progress(&self) -> bool {
+        self.progress_scheduler.get_progress() < 1.
+    }
+}
+
+impl<C, T, P> AnnealerScheduler<C, T, P>
+where
+    C: Criterion,
+    T: TemperatureScheduler,
+    P: ProgressScheduler,
+{
+    pub fn with_seconds(
+        start_temp: f64,
+        end_temp: f64,
+        seconds: f64,
+        is_maximize: bool,
+    ) -> AnnealerScheduler<AnnealingCriterion, ExpTemperatureScheduler, SecondProgressScheduler>
+    {
+        AnnealerScheduler::new(
+            AnnealingCriterion::new(is_maximize),
+            ExpTemperatureScheduler::new(start_temp, end_temp),
+            SecondProgressScheduler::new(seconds),
+        )
+    }
+
+    pub fn with_iterations(
+        start_temp: f64,
+        end_temp: f64,
+        iteration: usize,
+        is_maximize: bool,
+    ) -> AnnealerScheduler<AnnealingCriterion, ExpTemperatureScheduler, IterationProgressScheduler>
+    {
+        AnnealerScheduler::new(
+            AnnealingCriterion::new(is_maximize),
+            ExpTemperatureScheduler::new(start_temp, end_temp),
+            IterationProgressScheduler::new(iteration),
+        )
+    }
 }
 
 pub struct Annealer<G, N, C, T, P>
@@ -28,9 +142,7 @@ where
     pub env: <N::H as NeighborHandler>::Env,
     pub logger: AnnealingLogger,
     mutator: Mutator<G, N>,
-    criterion: C,
-    temperature_scheduler: T,
-    progress_scheduler: P,
+    scheduler: AnnealerScheduler<C, T, P>,
     rnd: Rnd,
     callbacks:
         Vec<Box<dyn Callback<<N::H as NeighborHandler>::State, <N::H as NeighborHandler>::Env>>>,
@@ -49,9 +161,7 @@ where
         state: <N::H as NeighborHandler>::State,
         env: <N::H as NeighborHandler>::Env,
         mutator: Mutator<G, N>,
-        progress_scheduler: P,
-        criterion: C,
-        temperature_scheduler: T,
+        scheduler: AnnealerScheduler<C, T, P>,
         callbacks: Vec<
             Box<dyn Callback<<N::H as NeighborHandler>::State, <N::H as NeighborHandler>::Env>>,
         >,
@@ -62,9 +172,7 @@ where
             env,
             logger: AnnealingLogger::new(),
             mutator,
-            progress_scheduler,
-            criterion,
-            temperature_scheduler,
+            scheduler,
             rnd: Rnd::new(24),
             callbacks,
             config,
@@ -72,14 +180,14 @@ where
     }
 
     pub fn run(&mut self) {
-        self.progress_scheduler.start();
+        self.scheduler.start();
 
         for callback in &mut self.callbacks {
             callback.on_start(&mut self.state, &self.env);
         }
 
         for cur_step in 0.. {
-            let progress = self.progress_scheduler.get_progress();
+            let progress = self.scheduler.get_progress();
             if progress >= 1. {
                 break;
             }
@@ -94,7 +202,7 @@ where
                 self.logger.send(step_log);
             }
 
-            self.progress_scheduler.step();
+            self.scheduler.step();
 
             for callback in &mut self.callbacks {
                 callback.on_after_step(cur_step, progress, &mut self.state, &self.env);
@@ -124,11 +232,7 @@ where
 
         let new_score = self.state.get_score(&self.env, progress);
         let score_delta = new_score - cur_score;
-        let cur_temp = self.temperature_scheduler.get_temp(progress);
-        let adopt = self
-            .criterion
-            .adopt(cur_score, new_score, cur_temp, progress, &mut self.rnd);
-
+        let adopt = self.scheduler.adopt(cur_score, new_score);
         if !adopt {
             self.mutator
                 .revert(&mut self.state, &self.env, &mut self.rnd);

@@ -4,7 +4,7 @@ use ahc_library::annealer::annealer::AnnealerMode;
 use ahc_library::annealer::prelude::*;
 use ahc_library::annealer::types::Callback;
 use ahc_library::utils::index_set::IndexSet;
-use ahc_library::utils::rnd::Rnd;
+use ahc_library::utils::random::Rnd;
 use proconio::input;
 
 const D: [(usize, usize); 4] = [(!0, 0), (0, 1), (1, 0), (0, !0)];
@@ -448,6 +448,7 @@ fn main() {
         callbacks,
         AnnealerConfig {
             mode: AnnealerMode::Release,
+            start_count: 1,
         },
     );
     annealer.run();

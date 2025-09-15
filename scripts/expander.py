@@ -101,6 +101,7 @@ def expand_ahc_library(ahc_library_path: pathlib.Path) -> str:
     # マクロが増えるたびにここに書く必要がある、直したいでござる
     macros = [
         "neighbor_impl",
+        "params_impl",
     ]
     for macro in macros:
         content = content.replace(

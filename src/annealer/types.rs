@@ -1,4 +1,4 @@
-use crate::utils::rnd::Rnd;
+use crate::utils::random::Rnd;
 
 pub trait State<E>: Clone
 where

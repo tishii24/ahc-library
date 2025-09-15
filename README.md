@@ -15,7 +15,7 @@ fn main() {
 ```shell
 cd ahcXXX
 PATH_AHC_LIBRARY=path/to/ahc-library
-uv run $PATH_AHC_LIBRARY/scripts/expander.py --ahc_library_path=$PATH_AHC_LIBRARY --solution_path=.
+uv run $PATH_AHC_LIBRARY/scripts/expander/expander.py --ahc_library_path=$PATH_AHC_LIBRARY --solution_path=.
 ```
 
 
@@ -42,3 +42,6 @@ uv run $PATH_AHC_LIBRARY/scripts/expander.py --ahc_library_path=$PATH_AHC_LIBRAR
 - beamsearch.rs
 - pqueue.rs
     - https://github.com/tidwall/pqueue/blob/master/src/lib.rs
+
+- パラメータ調整をNNでやってくれるやつ
+

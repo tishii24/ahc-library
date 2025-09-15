@@ -5,9 +5,11 @@ pub mod types;
 
 pub mod prelude {
     pub use crate::annealer::{
-        annealer::{Annealer, AnnealerConfig, Mutator},
+        annealer::{Annealer, AnnealerConfig, AnnealerMode, AnnealerScheduler, Mutator},
         components::{
-            criterion::AnnealingCriterion, neighbor_generator::WeightedNeighborGenerator,
+            criterion::AnnealingCriterion, criterion::HillClimbingCriterion,
+            neighbor_generator::WeightedNeighborGenerator,
+            progress_scheduler::IterationProgressScheduler,
             progress_scheduler::SecondProgressScheduler,
             temperature_scheduler::ExpTemperatureScheduler,
         },

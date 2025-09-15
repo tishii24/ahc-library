@@ -33,6 +33,12 @@ impl Coor {
     }
 
     #[inline]
+    pub fn add_mut(&mut self, d: Coor) {
+        self.i += d.i;
+        self.j += d.j;
+    }
+
+    #[inline]
     pub fn sub(&self, d: Coor) -> Coor {
         Coor {
             i: self.i - d.i,
@@ -40,7 +46,13 @@ impl Coor {
         }
     }
 
-    pub fn adj_iter(&self, h: usize, w: usize) -> impl Iterator<Item = Coor> {
+    #[inline]
+    pub fn sub_mut(&mut self, d: Coor) {
+        self.i -= d.i;
+        self.j -= d.j;
+    }
+
+    pub fn adj_iter(&self, h: usize, w: usize) -> impl Iterator<Item = Coor> + '_ {
         let directions = [
             Coor::new(1, 0),
             Coor::new(0, 1),
@@ -53,12 +65,12 @@ impl Coor {
             .filter(move |c| c.i < h && c.j < w)
     }
 
-    pub fn shuffled_adj_iter(
-        &self,
+    pub fn shuffled_adj_iter<'a>(
+        &'a self,
         h: usize,
         w: usize,
-        rnd: &mut crate::utils::rnd::Rnd,
-    ) -> impl Iterator<Item = Coor> {
+        rnd: &'a mut crate::utils::random::Rnd,
+    ) -> impl Iterator<Item = Coor> + 'a {
         let mut directions = [
             Coor::new(1, 0),
             Coor::new(0, 1),

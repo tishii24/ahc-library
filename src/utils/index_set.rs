@@ -1,9 +1,9 @@
-use crate::utils::rnd::Rnd;
+use crate::utils::random::Rnd;
 
 #[derive(Debug, Clone)]
 pub struct IndexSet {
-    que: Vec<usize>,
-    pos: Vec<usize>,
+    pub que: Vec<usize>,
+    pub pos: Vec<usize>,
 }
 
 impl IndexSet {

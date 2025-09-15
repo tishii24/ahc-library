@@ -1,14 +1,7 @@
 #[cfg(test)]
 mod test_single_variable {
-    use crate::annealer::annealer::*;
-    use crate::annealer::components::{
-        criterion::HillClimbingCriterion, neighbor_generator::WeightedNeighborGenerator,
-        progress_scheduler::IterationProgressScheduler,
-        temperature_scheduler::ExpTemperatureScheduler,
-    };
-    use crate::annealer::types::*;
-    use crate::neighbor_impl;
-    use crate::utils::rnd::Rnd;
+    use crate::annealer::prelude::*;
+    use crate::utils::random::Rnd;
 
     #[derive(Clone)]
     struct StateImpl {
@@ -88,12 +81,15 @@ mod test_single_variable {
             state,
             env,
             mutator,
-            IterationProgressScheduler::new(1_000),
-            HillClimbingCriterion::new(false),
-            ExpTemperatureScheduler::new(1e0, 1e-4),
+            AnnealerScheduler::new(
+                HillClimbingCriterion::new(false),
+                ExpTemperatureScheduler::new(1e0, 1e-4),
+                IterationProgressScheduler::new(1_000),
+            ),
             vec![],
             AnnealerConfig {
                 mode: AnnealerMode::Release,
+                start_count: 1,
             },
         );
         annealer.run();
@@ -106,15 +102,8 @@ mod test_single_variable {
 
 #[cfg(test)]
 mod test_knapsack {
-    use crate::annealer::annealer::*;
-    use crate::annealer::components::{
-        criterion::AnnealingCriterion, neighbor_generator::WeightedNeighborGenerator,
-        progress_scheduler::SecondProgressScheduler,
-        temperature_scheduler::ExpTemperatureScheduler,
-    };
-    use crate::annealer::types::*;
-    use crate::neighbor_impl;
-    use crate::utils::rnd::Rnd;
+    use crate::annealer::prelude::*;
+    use crate::utils::random::Rnd;
 
     #[derive(Clone)]
     struct StateImpl {
@@ -198,12 +187,15 @@ mod test_knapsack {
             state,
             env,
             mutator,
-            SecondProgressScheduler::new(0.1),
-            AnnealingCriterion::new(true),
-            ExpTemperatureScheduler::new(1e0, 1e-4),
+            AnnealerScheduler::new(
+                AnnealingCriterion::new(true),
+                ExpTemperatureScheduler::new(1e0, 1e-4),
+                SecondProgressScheduler::new(0.1),
+            ),
             vec![],
             AnnealerConfig {
                 mode: AnnealerMode::Release,
+                start_count: 1,
             },
         );
         annealer.run();

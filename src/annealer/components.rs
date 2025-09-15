@@ -1,7 +1,7 @@
 pub mod neighbor_generator {
     use crate::{
         annealer::types::{NeighborGenerator, NeighborType},
-        utils::rnd::Rnd,
+        utils::random::Rnd,
     };
 
     pub struct WeightedNeighborGenerator<N>
@@ -45,7 +45,7 @@ pub mod neighbor_generator {
 }
 
 pub mod criterion {
-    use crate::{annealer::types::Criterion, utils::rnd::Rnd};
+    use crate::{annealer::types::Criterion, utils::random::Rnd};
 
     pub struct HillClimbingCriterion {
         is_maximize: bool,

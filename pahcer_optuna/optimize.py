@@ -1,4 +1,4 @@
-# inspired by https://github.com/terry-u16/pahcer/tree/main/optuna-sample
+# inspired from https://github.com/terry-u16/pahcer/tree/main/optuna-sample
 
 # /// script
 # dependencies = [
@@ -27,6 +27,9 @@ class Args:
     )
     config_path: str = classopt.config(
         "--config", required=True, help="Path to config file"
+    )
+    timeout: int = classopt.config(
+        "--timeout", default=600, help="Timeout in seconds for the optimization"
     )
 
 
@@ -100,7 +103,7 @@ class Objective:
         return sum(scores) / len(scores)
 
     def extract_score(self, result: dict) -> float:
-        score_type = self.config["settings"]["score_type"]
+        score_type = self.config["problem"]["score_type"]
         if score_type == "absolute":
             absolute_score = result["score"]
             return absolute_score
@@ -141,12 +144,14 @@ class Objective:
 
 def run_optuna(config: dict, args: Args) -> None:
     study = optuna.create_study(
-        direction=config["settings"]["direction"],
+        storage=config["settings"]["storage"],
+        direction=config["problem"]["direction"],
         study_name=args.study_name,
-        pruner=optuna.pruners.WilcoxonPruner(p_threshold=0.02),
+        pruner=optuna.pruners.WilcoxonPruner(p_threshold=config["pruner"]["threshold"]),
         sampler=optuna.samplers.TPESampler(),
+        load_if_exists=True,
     )
-    study.optimize(Objective(config=config), timeout=config["settings"]["timeout"])
+    study.optimize(Objective(config=config), timeout=args.timeout)
 
     print("best params: ", study.best_params)
     print("best score: ", study.best_value)
@@ -156,7 +161,7 @@ def main() -> None:
     args = Args.from_args()  # type: ignore
 
     with open(args.config_path, "r") as file:
-        config = yaml.safe_load(file)
+        config = yaml.safe_load(file)["optuna"]
 
     print("args:", args)
     print("config:", config)

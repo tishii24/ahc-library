@@ -22,7 +22,7 @@ def type_to_rust_type(t: str) -> str:
     elif t == "float":
         return "f64"
     else:
-        raise ValueError(f"Unknown type: {t}")
+        raise ValueError(f"Unsupported type: {t}")
 
 
 def main() -> None:
@@ -32,28 +32,11 @@ def main() -> None:
         config = yaml.safe_load(file)
 
     content = ""
-
-    content += "#[allow(non_snake_case)]\n"
-    content += "struct Params {\n"
+    content += "params_impl! {\n"
     for d in config["params"]:
         t = type_to_rust_type(d["type"])
-        content += f'\t{d["name"]}: {t},\n'
-    content += "}\n"
-
-    content += "\n"
-    content += "impl Params {\n"
-    content += "\tfn from_env() -> Self {\n"
-    content += "\t\tSelf {\n"
-    for d in config["params"]:
-        t = type_to_rust_type(d["type"])
-        content += (
-            f'\t\t\t{d["name"]}: std::env::var("{d["name"]}")'
-            f'.unwrap_or("{d["default"]}".to_owned()).parse().unwrap(),\n'
-        )
-
-    content += "\t\t}\n"
-    content += "\t}\n"
-    content += "}\n"
+        content += f'\t{d["name"]}: {t} = {d["default"]},\n'
+    content += "}\n\n"
 
     print(content)
 
