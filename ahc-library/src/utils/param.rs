@@ -5,7 +5,7 @@ macro_rules! params_impl {
             $name:ident: $type:ty = $default:expr
         ),* $(,)?
     ) => {
-        #[allow(non_snake_case)]
+        #[allow(non_snake_case, unused)]
         #[derive(Debug, Clone)]
         pub struct Params {
             $(
@@ -17,7 +17,12 @@ macro_rules! params_impl {
             fn load() -> Self {
                 Self {
                     $(
-                        $name: option_env!(stringify!($name))
+                        // $name: option_env!(stringify!($name))
+                        //     .map(|v| v.parse::<$type>().unwrap())
+                        //     .unwrap_or($default),
+                        // $name: $default,
+                        $name: std::env::var(stringify!($name))
+                            .ok()
                             .map(|v| v.parse::<$type>().unwrap())
                             .unwrap_or($default),
                     )*

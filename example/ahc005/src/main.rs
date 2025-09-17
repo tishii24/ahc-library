@@ -3,6 +3,7 @@ use std::collections::HashMap;
 use ahc_library::annealer::annealer::AnnealerMode;
 use ahc_library::annealer::prelude::*;
 use ahc_library::annealer::types::Callback;
+use ahc_library::params_impl;
 use ahc_library::utils::index_set::IndexSet;
 use ahc_library::utils::random::Rnd;
 use proconio::input;
@@ -424,10 +425,15 @@ fn output(state: &StateImpl, env: &EnvImpl) {
     println!();
 }
 
-
+params_impl! {
+    START_TEMP: f64 = 62.73790735640404,
+    END_TEMP: f64 = 3.2250677919026054,
+    COOLING_RATE: f64 = 0.95,
+}
 
 fn main() {
     let input = Input::read_input();
+    let params = Params::load();
     let env = EnvImpl::from_input(&input);
     let state = init_state(&env);
     let generator = WeightedNeighborGenerator::new(vec![
@@ -440,13 +446,16 @@ fn main() {
         // Box::new(RestoreBestStateCallback::new(100_000, false)),
         // Box::new(ReturnBestStateCallback::new(false)),
     ];
+
     let mut annealer = Annealer::new(
         state,
         env,
         mutator,
-        SecondProgressScheduler::new(1.9),
-        AnnealingCriterion::new(false),
-        ExpTemperatureScheduler::new(1e2, 1e-1),
+        AnnealerScheduler::new(
+            AnnealingCriterion::new(false),
+            ExpTemperatureScheduler::new(params.START_TEMP, params.END_TEMP),
+            SecondProgressScheduler::new(1.9),
+        ),
         callbacks,
         AnnealerConfig {
             mode: AnnealerMode::Release,

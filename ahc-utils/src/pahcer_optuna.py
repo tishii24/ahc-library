@@ -12,6 +12,8 @@ import classopt
 import optuna
 import yaml
 
+from generate_impl import generate_impl
+
 
 @classopt.classopt(default_long=True)
 class Args:
@@ -24,11 +26,8 @@ class Args:
     timeout: int = classopt.config(
         "--timeout", default=600, help="Timeout in seconds for the optimization"
     )
-    skip_optimize: bool = classopt.config(
-        "--skip-optimize", action="store_true", help="Skip optimization"
-    )
     param_file: str = classopt.config(
-        "--param-file", default="params.rs", help="Path to the param file"
+        "--param-file", default="param.rs", help="Path to the param file"
     )
 
 
@@ -102,7 +101,7 @@ class Objective:
         return sum(scores) / len(scores)
 
     def extract_score(self, result: dict) -> float:
-        score_type = self.config["problem"]["score_type"]
+        score_type = self.config["settings"]["score_type"]
         if score_type == "absolute":
             absolute_score = result["score"]
             return absolute_score
@@ -125,15 +124,15 @@ class Objective:
 
             if d["type"] == "float":
                 params[d["name"]] = trial.suggest_float(
-                    d["name"],
-                    eval(d["min"]),
-                    eval(d["max"]),
+                    name=d["name"],
+                    low=eval(d["min"]) if type(d["min"]) is str else d["min"],
+                    high=eval(d["max"]) if type(d["max"]) is str else d["max"],
                 )
             elif d["type"] == "int":
                 params[d["name"]] = trial.suggest_int(
-                    d["name"],
-                    eval(d["min"]),
-                    eval(d["max"]),
+                    name=d["name"],
+                    low=eval(d["min"]) if type(d["min"]) is str else d["min"],
+                    high=eval(d["max"]) if type(d["max"]) is str else d["max"],
                 )
             else:
                 raise ValueError(f"Unsupported type: {d['type']}")
@@ -144,49 +143,13 @@ class Objective:
 def run_optuna(config: dict, args: Args) -> None:
     study = optuna.create_study(
         storage=config["settings"]["storage"],
-        direction=config["problem"]["direction"],
+        direction=config["settings"]["direction"],
         study_name=args.study_name,
         pruner=optuna.pruners.WilcoxonPruner(p_threshold=config["pruner"]["threshold"]),
         sampler=optuna.samplers.TPESampler(),
         load_if_exists=True,
     )
     study.optimize(Objective(config=config), timeout=args.timeout)
-
-
-def generate_impl(study_name: str, config: dict) -> str:
-    def type_to_rust_type(t: str) -> str:
-        if t == "int":
-            return "i64"
-        elif t == "float":
-            return "f64"
-        else:
-            raise ValueError(f"Unsupported type: {t}")
-
-    def get_best_values_from_optuna_study(study_name: str, config: dict) -> dict:
-        study = optuna.load_study(
-            study_name=study_name, storage=config["settings"]["storage"]
-        )
-        return study.best_trial.params
-
-    try:
-        best_params = get_best_values_from_optuna_study(study_name, config)
-    except Exception:
-        best_params = {}
-
-    content = ""
-    content += "params_impl! {\n"
-    for d in config["params"]:
-        t = type_to_rust_type(d["type"])
-        if d["name"] in best_params:
-            value = best_params[d["name"]]
-        else:
-            value = d["default"]
-
-        content += f'\t{d["name"]}: {t} = {value},\n'
-
-    content += "}\n\n"
-
-    return content
 
 
 def main() -> None:
@@ -198,18 +161,10 @@ def main() -> None:
     print("args:", args)
     print("config:", config)
 
-    try:
-        if not args.skip_optimize:
-            run_optuna(config, args)
-        else:
-            print("skip optimization")
-    finally:
-        impl = generate_impl(args.study_name, config)
-        print("impl:")
-        print(impl)
+    run_optuna(config, args)
 
-        with open(args.param_file, "w") as f:
-            f.write(impl)
+    impl = generate_impl(args.study_name, config)
+    print("impl:\n" + impl)
 
 
 if __name__ == "__main__":

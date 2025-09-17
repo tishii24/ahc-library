@@ -13,7 +13,8 @@ dependencies = [
 ]
 
 [project.scripts]
-pahcer-optuna = "optimize:main"
+generate-impl = "generate-impl:main"
+pahcer-optuna = "pahcer_optuna:main"
 expander = "expander:main"
 
 [tool.uv]

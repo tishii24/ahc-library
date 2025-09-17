@@ -12,7 +12,7 @@ impl<T> Array2d<T>
 where
     T: Clone + Copy,
 {
-    /// expect: values[i] = const.
+    /// expect: values[i].len() = const.
     pub fn new(values: Vec<Vec<T>>) -> Array2d<T> {
         let w = values[0].len();
         let values = values.into_iter().flatten().collect();
