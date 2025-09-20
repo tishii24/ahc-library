@@ -49,7 +49,7 @@ impl<T: Clone + Copy> FastClearArray2d<T> {
     }
 
     #[inline]
-    pub fn get(&mut self, c: Coor) -> T {
+    pub fn get(&mut self, c: &Coor) -> T {
         if self.values.get(c).0 != self.version {
             self.values.set(c, (self.version, self.init_value));
         }
@@ -57,7 +57,7 @@ impl<T: Clone + Copy> FastClearArray2d<T> {
     }
 
     #[inline]
-    pub fn set(&mut self, c: Coor, new_value: T) {
+    pub fn set(&mut self, c: &Coor, new_value: T) {
         self.values.set(c, (self.version, new_value));
     }
 
@@ -85,12 +85,12 @@ mod tests {
     #[test]
     fn test_fast_clear_array_2d() {
         let mut arr = super::FastClearArray2d::new(3, 4, 0);
-        assert_eq!(arr.get(Coor::new(1, 2)), 0);
-        arr.set(Coor::new(1, 2), 5);
-        assert_eq!(arr.get(Coor::new(1, 2)), 5);
+        assert_eq!(arr.get(&Coor::new(1, 2)), 0);
+        arr.set(&Coor::new(1, 2), 5);
+        assert_eq!(arr.get(&Coor::new(1, 2)), 5);
         arr.clear();
-        assert_eq!(arr.get(Coor::new(1, 2)), 0);
-        arr.set(Coor::new(1, 2), 7);
-        assert_eq!(arr.get(Coor::new(1, 2)), 7);
+        assert_eq!(arr.get(&Coor::new(1, 2)), 0);
+        arr.set(&Coor::new(1, 2), 7);
+        assert_eq!(arr.get(&Coor::new(1, 2)), 7);
     }
 }

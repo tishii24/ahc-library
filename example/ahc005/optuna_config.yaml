@@ -1,24 +1,29 @@
-settings:
-  storage: sqlite:///optuna.db
-  direction: maximize
-  score_type: absolute
-pruner:
-  threshold: 0.02
-params:
-  - name: START_TEMP
-    type: float
-    default: 100.0
-    min: 1.0
-    max: 1000.0
-  - name: END_TEMP
-    type: float
-    default: 0.01
-    min: 0.001
-    max: min(10, params["START_TEMP"])
-  - name: COOLING_RATE
-    type: float
-    default: 0.95
-    min: 0.8
-    max: 0.999
-ignore_params:
-  - COOLING_RATE
+basedir: .autotune
+timeout: 30
+num_sample: 1000
+input_params:
+  - name: N
+    type: int
+    min: 49
+    max: 71
+    partitions: [49, 60, 71]
+optuna:
+  settings:
+    storage: sqlite:///optuna.db
+    direction: maximize
+    score_type: absolute
+  pruner:
+    threshold: 0.02
+  params:
+    - name: START_TEMP
+      type: float
+      default: 100.0
+      min: 1.0
+      max: 1000.0
+    - name: END_TEMP
+      type: float
+      default: 0.01
+      min: 0.001
+      max: 0.9
+  ignore_params:
+    - COOLING_RATE

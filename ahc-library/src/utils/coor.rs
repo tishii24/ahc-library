@@ -25,7 +25,7 @@ impl Coor {
     }
 
     #[inline]
-    pub fn add(&self, d: Coor) -> Coor {
+    pub fn add(&self, d: &Coor) -> Coor {
         Coor {
             i: self.i + d.i,
             j: self.j + d.j,
@@ -33,13 +33,13 @@ impl Coor {
     }
 
     #[inline]
-    pub fn add_mut(&mut self, d: Coor) {
+    pub fn add_mut(&mut self, d: &Coor) {
         self.i += d.i;
         self.j += d.j;
     }
 
     #[inline]
-    pub fn sub(&self, d: Coor) -> Coor {
+    pub fn sub(&self, d: &Coor) -> Coor {
         Coor {
             i: self.i - d.i,
             j: self.j - d.j,
@@ -53,15 +53,14 @@ impl Coor {
     }
 
     pub fn adj_iter(&self, h: usize, w: usize) -> impl Iterator<Item = Coor> + '_ {
-        let directions = [
-            Coor::new(1, 0),
-            Coor::new(0, 1),
-            Coor::new(!0, 0),
-            Coor::new(0, !0),
+        const D4: [Coor; 4] = [
+            Coor { i: 1, j: 0 },
+            Coor { i: 0, j: 1 },
+            Coor { i: !0, j: 0 },
+            Coor { i: 0, j: !0 },
         ];
-        directions
-            .into_iter()
-            .map(|d| self.add(d))
+        D4.iter()
+            .map(|d| self.add(&d))
             .filter(move |c| c.i < h && c.j < w)
     }
 
@@ -81,7 +80,7 @@ impl Coor {
 
         directions
             .into_iter()
-            .map(|d| self.add(d))
+            .map(|d| self.add(&d))
             .filter(move |c| c.i < h && c.j < w)
     }
 

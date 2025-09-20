@@ -1,24 +1,39 @@
-settings:
-  storage: sqlite:///optuna.db
-  direction: maximize
-  score_type: relative
-pruner:
-  threshold: 0.02
-params:
-  - name: START_TEMP
-    type: float
-    default: 10.0
-    min: 1.0
-    max: 10000.0
-  - name: END_TEMP
-    type: float
-    default: 1e-1
-    min: 1e-3
-    max: min(1e-1, params["START_TEMP"])
-  - name: COOLING_RATE
-    type: float
-    default: 0.95
-    min: 0.8
-    max: 0.999
-ignore_params:
-  - COOLING_RATE
+basedir: .pahcer-optuna
+timeout: 600
+num_sample: 500
+input_params:
+  - name: N
+    type: int
+    min: 5
+    max: 20
+    partitions: [5, 10, 15, 20]
+  - name: M
+    type: int
+    min: 100
+    max: 300
+    partitions: [100, 200, 300]
+optuna:
+  settings:
+    storage: sqlite:///optuna.db
+    direction: maximize
+    score_type: relative
+  pruner:
+    threshold: 0.02
+  params:
+    - name: START_TEMP
+      type: float
+      default: 10.0
+      min: 1.0
+      max: 10000.0
+    - name: END_TEMP
+      type: float
+      default: 1e-1
+      min: 1e-3
+      max: 1e-1
+    - name: COOLING_RATE
+      type: float
+      default: 0.95
+      min: 0.8
+      max: 0.999
+  ignore_params:
+    - COOLING_RATE

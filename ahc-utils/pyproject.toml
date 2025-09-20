@@ -10,12 +10,14 @@ dependencies = [
     "optuna>=4.2.1",
     "scipy>=1.11.4",
     "types-pyyaml>=6.0.12.20250915",
+    "pydantic>=2.11.9",
 ]
 
 [project.scripts]
-generate-impl = "generate-impl:main"
+generate-impl = "generate_impl:main"
 pahcer-optuna = "pahcer_optuna:main"
 expander = "expander:main"
+autotune = "autotune:main"
 
 [tool.uv]
 package = true

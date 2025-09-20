@@ -2,18 +2,22 @@ import classopt
 import optuna
 import yaml
 
+from type import OptunaConfig
+
 
 @classopt.classopt(default_long=True)
 class Args:
     study_name: str = classopt.config(
         "--study-name", required=True, help="Name of the study"
     )
-    param_file: str = classopt.config(
-        "--param-file", default="param.rs", help="Path to the param file"
-    )
 
 
-def generate_impl(study_name: str, config: dict) -> str:
+def get_best_values_from_optuna_study(study_name: str, storage: str) -> dict:
+    study = optuna.load_study(study_name=study_name, storage=storage)
+    return study.best_trial.params
+
+
+def generate_impl(study_name: str, config: OptunaConfig) -> str:
     def type_to_rust_type(t: str) -> str:
         if t == "int":
             return "i64"
@@ -22,27 +26,23 @@ def generate_impl(study_name: str, config: dict) -> str:
         else:
             raise ValueError(f"Unsupported type: {t}")
 
-    def get_best_values_from_optuna_study(study_name: str, config: dict) -> dict:
-        study = optuna.load_study(
-            study_name=study_name, storage=config["settings"]["storage"]
-        )
-        return study.best_trial.params
-
     try:
-        best_params = get_best_values_from_optuna_study(study_name, config)
+        best_params = get_best_values_from_optuna_study(
+            study_name, config.settings.storage
+        )
     except Exception:
         best_params = {}
 
     content = ""
     content += "params_impl! {\n"
-    for d in config["params"]:
-        t = type_to_rust_type(d["type"])
-        if d["name"] in best_params:
-            value = best_params[d["name"]]
+    for d in config.params:
+        t = type_to_rust_type(d.type)
+        if d.name in best_params:
+            value = best_params[d.name]
         else:
-            value = d["default"]
+            value = d.default
 
-        content += f'    {d["name"]}: {t} = {value},\n'
+        content += f"    {d.name}: {t} = {value},\n"
 
     content += "}\n\n"
 
@@ -53,13 +53,12 @@ def main() -> None:
     args = Args.from_args()  # type: ignore
 
     with open(args.config_path, "r") as file:
-        config = yaml.safe_load(file)
+        config = yaml.safe_load(file)["optuna"]
+
+    config = OptunaConfig(**config)
 
     impl = generate_impl(args.study_name, config)
     print(impl)
-
-    with open(args.param_file, "w") as f:
-        f.write(impl)
 
 
 if __name__ == "__main__":

@@ -13,6 +13,7 @@ import optuna
 import yaml
 
 from generate_impl import generate_impl
+from type import OptunaConfig
 
 
 @classopt.classopt(default_long=True)
@@ -26,13 +27,10 @@ class Args:
     timeout: int = classopt.config(
         "--timeout", default=600, help="Timeout in seconds for the optimization"
     )
-    param_file: str = classopt.config(
-        "--param-file", default="param.rs", help="Path to the param file"
-    )
 
 
 class Objective:
-    def __init__(self, config: dict) -> None:
+    def __init__(self, config: OptunaConfig) -> None:
         self.config = config
 
     def __call__(self, trial: optuna.trial.Trial) -> float:
@@ -101,7 +99,7 @@ class Objective:
         return sum(scores) / len(scores)
 
     def extract_score(self, result: dict) -> float:
-        score_type = self.config["settings"]["score_type"]
+        score_type = self.config.settings.score_type
         if score_type == "absolute":
             absolute_score = result["score"]
             return absolute_score
@@ -117,54 +115,59 @@ class Objective:
 
     def generate_params(self, trial: optuna.trial.Trial) -> dict[str, str]:
         params = {}
-        for d in self.config["params"]:
-            if d["name"] in self.config["ignore_params"]:
-                params[d["name"]] = d["default"]
+        for d in self.config.params:
+            if d.name in self.config.ignore_params:
+                params[d.name] = d.default
                 continue
 
-            if d["type"] == "float":
-                params[d["name"]] = trial.suggest_float(
-                    name=d["name"],
-                    low=eval(d["min"]) if type(d["min"]) is str else d["min"],
-                    high=eval(d["max"]) if type(d["max"]) is str else d["max"],
+            if d.type == "float":
+                params[d.name] = trial.suggest_float(
+                    name=d.name,
+                    low=d.min,
+                    high=d.max,
                 )
-            elif d["type"] == "int":
-                params[d["name"]] = trial.suggest_int(
-                    name=d["name"],
-                    low=eval(d["min"]) if type(d["min"]) is str else d["min"],
-                    high=eval(d["max"]) if type(d["max"]) is str else d["max"],
+            elif d.type == "int":
+                params[d.name] = trial.suggest_int(
+                    name=d.name,
+                    low=int(d.min),
+                    high=int(d.max),
                 )
             else:
-                raise ValueError(f"Unsupported type: {d['type']}")
+                raise ValueError(f"Unsupported type: {d.type}")
 
         return {k: str(v) for k, v in params.items()}
 
 
-def run_optuna(config: dict, args: Args) -> None:
+def run_optuna(study_name: str, timeout: float, config: OptunaConfig) -> None:
     study = optuna.create_study(
-        storage=config["settings"]["storage"],
-        direction=config["settings"]["direction"],
-        study_name=args.study_name,
-        pruner=optuna.pruners.WilcoxonPruner(p_threshold=config["pruner"]["threshold"]),
+        storage=config.settings.storage,
+        direction=config.settings.direction,
+        study_name=study_name,
+        pruner=optuna.pruners.WilcoxonPruner(p_threshold=config.pruner.threshold),
         sampler=optuna.samplers.TPESampler(),
         load_if_exists=True,
     )
-    study.optimize(Objective(config=config), timeout=args.timeout)
+    study.optimize(Objective(config=config), timeout=timeout)
 
 
 def main() -> None:
     args = Args.from_args()  # type: ignore
 
     with open(args.config_path, "r") as file:
-        config = yaml.safe_load(file)
+        config = yaml.safe_load(file)["optuna"]
+
+    config = OptunaConfig(**config)
 
     print("args:", args)
     print("config:", config)
 
-    run_optuna(config, args)
-
-    impl = generate_impl(args.study_name, config)
-    print("impl:\n" + impl)
+    try:
+        run_optuna(args.study_name, args.timeout, config)
+    except KeyboardInterrupt:
+        print("interrupted.")
+    finally:
+        impl = generate_impl(args.study_name, config)
+        print("impl:\n" + impl)
 
 
 if __name__ == "__main__":
