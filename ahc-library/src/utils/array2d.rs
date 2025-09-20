@@ -25,14 +25,14 @@ where
         Array2d { w, values }
     }
 
-    #[inline(always)]
+    #[inline]
     pub fn get(&self, c: &Coor) -> T {
-        self.values[c.i * self.w + c.j]
+        self.values[c.to_index(self.w)]
     }
 
-    #[inline(always)]
+    #[inline]
     pub fn set(&mut self, c: &Coor, v: T) {
-        self.values[c.i * self.w + c.j] = v;
+        self.values[c.to_index(self.w)] = v;
     }
 }
 

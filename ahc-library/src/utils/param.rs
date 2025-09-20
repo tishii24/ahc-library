@@ -32,22 +32,6 @@ macro_rules! params_impl {
     };
 }
 
-struct A {
-    a: f64,
-    b: f64,
-}
-
-impl A {
-    fn new(n: usize, m: usize) -> Self {
-        match (n, m) {
-            (0..=1, 0..=1) => Self { a: 0.0, b: 0.0 },
-            (0..=2, 0..=2) => Self { a: 1.0, b: 2.0 },
-            (2, 3) => Self { a: 2.0, b: 3.0 },
-            _ => Self { a: 0.0, b: 0.0 },
-        }
-    }
-}
-
 #[test]
 fn test_define_params() {
     params_impl! {

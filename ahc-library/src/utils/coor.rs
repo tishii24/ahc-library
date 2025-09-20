@@ -64,27 +64,7 @@ impl Coor {
             .filter(move |c| c.i < h && c.j < w)
     }
 
-    pub fn shuffled_adj_iter<'a>(
-        &'a self,
-        h: usize,
-        w: usize,
-        rnd: &'a mut crate::utils::random::Rnd,
-    ) -> impl Iterator<Item = Coor> + 'a {
-        let mut directions = [
-            Coor::new(1, 0),
-            Coor::new(0, 1),
-            Coor::new(!0, 0),
-            Coor::new(0, !0),
-        ];
-        rnd.shuffle(&mut directions);
-
-        directions
-            .into_iter()
-            .map(|d| self.add(&d))
-            .filter(move |c| c.i < h && c.j < w)
-    }
-
-    pub fn manhattan_distance(a: Coor, b: Coor) -> usize {
+    pub fn manhattan_distance(a: &Coor, b: &Coor) -> usize {
         a.i.abs_diff(b.i) + a.j.abs_diff(b.j)
     }
 }
