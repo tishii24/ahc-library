@@ -5,6 +5,7 @@ pub struct Array2d<T>
 where
     T: Clone + Copy,
 {
+    pub h: usize,
     pub w: usize,
     values: Vec<T>,
 }
@@ -15,14 +16,15 @@ where
 {
     /// expect: values[i].len() = const.
     pub fn new(values: Vec<Vec<T>>) -> Array2d<T> {
+        let h = values.len();
         let w = values[0].len();
         let values = values.into_iter().flatten().collect();
-        Array2d { w, values }
+        Array2d { h, w, values }
     }
 
     pub fn init(h: usize, w: usize, init_value: T) -> Array2d<T> {
         let values = vec![init_value; h * w];
-        Array2d { w, values }
+        Array2d { h, w, values }
     }
 
     #[inline]

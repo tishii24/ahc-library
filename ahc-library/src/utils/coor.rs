@@ -1,6 +1,6 @@
 #![allow(overflowing_literals)]
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub struct Coor {
     pub i: usize,
     pub j: usize,
