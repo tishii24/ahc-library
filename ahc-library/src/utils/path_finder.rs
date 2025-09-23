@@ -25,20 +25,26 @@ pub struct BfsGridPathFinder {
 }
 
 impl BfsGridPathFinder {
-    pub fn new(h: usize, w: usize) -> Self {
+    pub fn new(h: usize, w: usize, seed: u32) -> Self {
         Self {
             h,
             w,
             q: VecDeque::new(),
             dist: FastClearArray2d::new(h, w, i32::MAX),
             prev: FastClearArray2d::new(h, w, None),
-            rnd: Rnd::new(24),
+            rnd: Rnd::new(seed),
         }
     }
 
-    pub fn get_reachable_coors<T>(&mut self, start: &Coor, trans_cond: T) -> Vec<Coor>
+    pub fn get_reachable_coors<T, D>(
+        &mut self,
+        start: &Coor,
+        trans_cond: T,
+        priority_d: D,
+    ) -> Vec<Coor>
     where
         T: Fn(&Coor, &Coor) -> bool,
+        D: Fn(usize, &Coor, &mut Rnd) -> Coor,
     {
         self.reset();
 
@@ -49,15 +55,19 @@ impl BfsGridPathFinder {
 
         while let Some(v) = self.q.pop_front() {
             let new_dist = self.dist.get(&v) + 1;
-            for u in v.adj_iter(self.h, self.w).filter(|u| trans_cond(u, &v)) {
-                if self.dist.get(&u) <= new_dist {
-                    continue;
+            for i in 0..4 {
+                let d = priority_d(i, &v, &mut self.rnd);
+                let u = v.add(&d);
+                if u.i < self.h
+                    && u.j < self.w
+                    && (trans_cond)(&u, &v)
+                    && new_dist < self.dist.get(&u)
+                {
+                    self.dist.set(&u, new_dist);
+                    self.q.push_back(u);
+                    self.prev.set(&u, Some(v));
+                    coors.push(u);
                 }
-                self.dist.set(&u, new_dist);
-                self.q.push_back(u);
-                self.prev.set(&u, Some(v));
-
-                coors.push(u);
             }
         }
 
@@ -106,7 +116,7 @@ impl BfsGridPathFinder {
         None
     }
 
-    fn restore_path(&mut self, start: &Coor, end: &Coor) -> Vec<Coor> {
+    pub fn restore_path(&mut self, start: &Coor, end: &Coor) -> Vec<Coor> {
         let mut path = vec![*end];
         let mut cur = *end;
         while let Some(p) = self.prev.get(&cur) {
