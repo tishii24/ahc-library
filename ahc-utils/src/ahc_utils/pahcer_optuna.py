@@ -12,8 +12,11 @@ import classopt
 import optuna
 import yaml
 
-from generate_impl import generate_impl
-from type import OptunaConfig
+from ahc_utils.core.config import OptunaConfig
+from ahc_utils.core.generate_impl import (
+    generate_impl,
+    get_best_values_from_optuna_study,
+)
 
 
 @classopt.classopt(default_long=True)
@@ -120,13 +123,23 @@ class Objective:
                 params[d.name] = d.default
                 continue
 
-            if d.type == "float":
+            if d.type in {"float", "f16", "f32", "f64"}:
                 params[d.name] = trial.suggest_float(
                     name=d.name,
                     low=d.min,
                     high=d.max,
                 )
-            elif d.type == "int":
+            elif d.type in {
+                "int",
+                "i16",
+                "i32",
+                "i64",
+                "isize",
+                "u16",
+                "u32",
+                "u64",
+                "usize",
+            }:
                 params[d.name] = trial.suggest_int(
                     name=d.name,
                     low=int(d.min),
@@ -140,7 +153,7 @@ class Objective:
 
 def run_optuna(study_name: str, timeout: float, config: OptunaConfig) -> None:
     study = optuna.create_study(
-        storage=config.settings.storage,
+        storage=f"sqlite:///{config.settings.storage_path}",
         direction=config.settings.direction,
         study_name=study_name,
         pruner=optuna.pruners.WilcoxonPruner(p_threshold=config.pruner.threshold),
@@ -166,7 +179,10 @@ def main() -> None:
     except KeyboardInterrupt:
         print("interrupted.")
     finally:
-        impl = generate_impl(args.study_name, config)
+        best_params = get_best_values_from_optuna_study(
+            args.study_name, config.settings.storage_path
+        )
+        impl = generate_impl(best_params, config.params)
         print("impl:\n" + impl)
 
 

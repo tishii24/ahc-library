@@ -1,7 +1,11 @@
 static mut START: f64 = -1.;
+static mut R: f64 = 1.;
 
 #[allow(unused)]
-pub fn start_clock() {
+pub fn start_clock(r: Option<f64>) {
+    unsafe {
+        R = r.unwrap_or(1.);
+    }
     let _ = elapsed_seconds();
 }
 
@@ -16,6 +20,6 @@ pub fn elapsed_seconds() -> f64 {
         if START < 0. {
             START = t;
         }
-        t - START
+        (t - START) * R
     }
 }

@@ -14,10 +14,23 @@ dependencies = [
 ]
 
 [project.scripts]
-generate-impl = "generate_impl:main"
-pahcer-optuna = "pahcer_optuna:main"
-expander = "expander:main"
-autotune = "autotune:main"
+generate-impl = "ahc_utils.generate_impl:main"
+pahcer-optuna = "ahc_utils.pahcer_optuna:main"
+expander = "ahc_utils.expander:main"
+autotune = "ahc_utils.autotune:main"
 
 [tool.uv]
 package = true
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[dependency-groups]
+dev = [
+    "pytest>=8.4.2",
+]
+
+ [tool.hatch.build.targets.wheel]
+packages = ["src/ahc_utils"]
+

@@ -3,13 +3,17 @@ timeout: 30
 num_sample: 1000
 input_params:
   - name: N
-    type: int
+    type: usize
     min: 49
     max: 71
+    parser:
+      type: constant
+      params:
+        index: 0
     partitions: [49, 60, 71]
 optuna:
   settings:
-    storage: sqlite:///optuna.db
+    storage_path: optuna.db
     direction: maximize
     score_type: absolute
   pruner:

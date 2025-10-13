@@ -2,9 +2,12 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
+from ahc_utils.core.input_param import InputParameter
+from ahc_utils.core.optuna_param import OptunaParameter
+
 
 class Settings(BaseModel):
-    storage: str
+    storage_path: str
     direction: Literal["maximize", "minimize"]
     score_type: Literal["relative", "absolute", "log10"]
 
@@ -13,38 +16,11 @@ class Pruner(BaseModel):
     threshold: float = Field(ge=0.0, le=1.0)
 
 
-class Parameter(BaseModel):
-    name: str
-    type: Literal["int", "float"]
-    default: int | float
-    min: int | float
-    max: int | float
-
-
 class OptunaConfig(BaseModel):
     settings: Settings
     pruner: Pruner
-    params: list[Parameter]
+    params: list[OptunaParameter]
     ignore_params: list[str] = []
-
-
-class IntInputParameter(BaseModel):
-    name: str
-    type: Literal["int"]
-    min: int
-    max: int
-    partitions: list[int]
-
-
-class FloatInputParameter(BaseModel):
-    name: str
-    type: Literal["float"]
-    min: float
-    max: float
-    partitions: list[float]
-
-
-InputParameter = IntInputParameter | FloatInputParameter
 
 
 class AutotuneConfig(BaseModel):

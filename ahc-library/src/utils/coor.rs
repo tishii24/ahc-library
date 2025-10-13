@@ -1,5 +1,12 @@
 #![allow(overflowing_literals)]
 
+pub const D_DOWN: Coor = Coor { i: 1, j: 0 };
+pub const D_UP: Coor = Coor { i: !0, j: 0 };
+pub const D_LEFT: Coor = Coor { i: 0, j: !0 };
+pub const D_RIGHT: Coor = Coor { i: 0, j: 1 };
+
+pub const D4: [Coor; 4] = [D_UP, D_DOWN, D_LEFT, D_RIGHT];
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub struct Coor {
     pub i: usize,

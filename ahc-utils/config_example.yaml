@@ -6,15 +6,23 @@ input_params:
     type: int
     min: 5
     max: 20
+    parser:
+      type: constant
+      params:
+        index: 0
     partitions: [5, 10, 15, 20]
   - name: M
     type: int
     min: 100
     max: 300
+    parser:
+      type: constant
+      params:
+        index: 1
     partitions: [100, 200, 300]
 optuna:
   settings:
-    storage: sqlite:///optuna.db
+    storage_path: optuna.db
     direction: maximize
     score_type: relative
   pruner:

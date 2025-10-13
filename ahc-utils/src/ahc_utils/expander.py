@@ -56,6 +56,22 @@ def read_modules_without_test(mod_name: str, file_path: pathlib.Path) -> str:
     return content
 
 
+def replace_macros(content: str) -> str:
+    # マクロはcrate::*に置かれるので、特別に置き換える
+    # マクロが増えるたびにここに書く必要がある、直したいでござる
+    macros = [
+        "neighbor_impl",
+        "params_impl",
+    ]
+    for macro in macros:
+        content = content.replace(
+            f"crate::ahc_library::{macro}",
+            f"crate::{macro}",
+        )
+
+    return content
+
+
 def expand_ahc_library(ahc_library_path: pathlib.Path) -> str:
     src_dir = ahc_library_path / "src"
     content = ""
@@ -90,18 +106,6 @@ def expand_ahc_library(ahc_library_path: pathlib.Path) -> str:
     content += "}\n"
 
     content = content.replace("crate::", "crate::ahc_library::")
-
-    # マクロはcrate::*に置かれるので、特別に置き換える
-    # マクロが増えるたびにここに書く必要がある、直したいでござる
-    macros = [
-        "neighbor_impl",
-        "params_impl",
-    ]
-    for macro in macros:
-        content = content.replace(
-            f"crate::ahc_library::{macro}",
-            f"crate::{macro}",
-        )
 
     return content
 
@@ -147,6 +151,7 @@ def main() -> None:
     solution = solution.replace("use ahc_library::", "use crate::ahc_library::")
 
     submission = solution + library
+    submission = replace_macros(content=submission)
     submission = apply_rustfmt(submission)
 
     print(submission)

@@ -33,6 +33,7 @@ impl<T: Clone + Copy> FastClearArray<T> {
     }
 }
 
+#[derive(Clone)]
 pub struct FastClearArray2d<T: Clone + Copy> {
     pub version: usize,
     pub values: Array2d<(usize, T)>,

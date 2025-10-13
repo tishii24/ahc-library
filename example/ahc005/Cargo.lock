@@ -5,6 +5,9 @@ version = 4
 [[package]]
 name = "ahc-library"
 version = "0.1.0"
+dependencies = [
+ "once_cell",
+]
 
 [[package]]
 name = "ahc005"
