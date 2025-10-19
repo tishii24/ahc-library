@@ -1,6 +1,15 @@
 [package]
 name = "autotune"
 version = "0.1.0"
-edition = "2024"
+edition = "2021"
 
 [dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_yaml = "0.9"
+serde_json = "1"
+clap = { version = "4", features = ["derive"] }
+anyhow = "1"
+thiserror = "1"
+walkdir = "2"
+itertools = "0.14.0"
+
