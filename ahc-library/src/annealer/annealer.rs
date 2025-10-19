@@ -15,7 +15,6 @@ pub enum AnnealerMode {
 
 pub struct AnnealerConfig {
     pub mode: AnnealerMode,
-    pub start_count: usize,
 }
 
 pub struct Annealer<G, N, C, T, P>

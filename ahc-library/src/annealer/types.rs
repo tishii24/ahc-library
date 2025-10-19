@@ -14,6 +14,7 @@ pub trait NeighborHandler {
     type State: State<Self::Env>;
     type Env: Env;
 
+    fn setup() -> Self;
     fn tag(&self) -> &'static str;
     fn apply(&mut self, state: &mut Self::State, env: &Self::Env, rnd: &mut Rnd) -> bool;
     fn revert(&mut self, state: &mut Self::State, env: &Self::Env, rnd: &mut Rnd);
@@ -73,6 +74,10 @@ macro_rules! neighbor_impl {
         impl $crate::annealer::types::NeighborHandler for NeighborHandlerImpl {
             type Env = $env_type;
             type State = $state_type;
+
+            fn setup() -> Self {
+                unreachable!()
+            }
 
             fn tag(&self) -> &'static str {
                 match self {

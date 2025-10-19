@@ -8,9 +8,13 @@ pub trait BeamWidthPolicy {
     fn end_unit(&mut self) {}
 }
 
+/// Delegate trait for beam search
 pub trait BeamSearchDelegate<S, M> {
+    /// 評価関数（大きい方が良い）
     fn evaluate(&self, state: &S, material: &M) -> f64;
+    /// 状態遷移関数
     fn transfer(&self, state: &S, material: &M) -> S;
+    /// ハッシュ関数
     fn hash(&self, state: &S, material: &M) -> u64;
 }
 
@@ -200,11 +204,13 @@ mod tests {
             d: i64,
         }
 
-        struct Delegate;
-
+        let global_c = 10.1;
+        struct Delegate {
+            c: f64,
+        }
         impl BeamSearchDelegate<State, Material> for Delegate {
             fn evaluate(&self, state: &State, material: &Material) -> f64 {
-                (state.a + material.d) as f64
+                -((state.a + material.d) as f64 - self.c).powf(2.)
             }
 
             fn transfer(&self, state: &State, material: &Material) -> State {
@@ -220,8 +226,8 @@ mod tests {
 
         let states = vec![State { a: 1 }];
         let policy = FixedBeamWidthPolicy::new(5);
+        let delegate = Delegate { c: global_c };
         let mut runner = BeamSearchRunner::new(5., 3, policy);
-        let delegate = Delegate;
         let states = runner.run(
             states,
             |_, _| (1..=5).map(|d| Material { d }).collect(),
@@ -229,10 +235,10 @@ mod tests {
         );
 
         assert_eq!(states.len(), 5);
-        assert_eq!(states[0].a, 16);
-        assert_eq!(states[1].a, 15);
-        assert_eq!(states[2].a, 14);
-        assert_eq!(states[3].a, 13);
-        assert_eq!(states[4].a, 12);
+        assert_eq!(states[0].a, 10);
+        assert_eq!(states[1].a, 11);
+        assert_eq!(states[2].a, 9);
+        assert_eq!(states[3].a, 12);
+        assert_eq!(states[4].a, 8);
     }
 }

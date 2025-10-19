@@ -1,6 +1,7 @@
 #[cfg(test)]
 mod test_single_variable {
     use crate::annealer::prelude::*;
+    use crate::annealer::types::NeighborHandler;
     use crate::utils::random::Rnd;
 
     #[derive(Clone)]
@@ -24,7 +25,10 @@ mod test_single_variable {
         a: f64,
     }
 
-    impl NeighborA {
+    impl NeighborHandler for NeighborA {
+        type State = StateImpl;
+        type Env = EnvImpl;
+
         fn setup() -> NeighborA {
             NeighborA { a: 1. }
         }
@@ -47,7 +51,10 @@ mod test_single_variable {
         b: f64,
     }
 
-    impl NeighborB {
+    impl NeighborHandler for NeighborB {
+        type State = StateImpl;
+        type Env = EnvImpl;
+
         fn setup() -> NeighborB {
             NeighborB { b: 1. }
         }
@@ -89,7 +96,6 @@ mod test_single_variable {
             vec![],
             AnnealerConfig {
                 mode: AnnealerMode::Release,
-                start_count: 1,
             },
         );
         annealer.run();
@@ -103,6 +109,7 @@ mod test_single_variable {
 #[cfg(test)]
 mod test_knapsack {
     use crate::annealer::prelude::*;
+    use crate::annealer::types::NeighborHandler;
     use crate::utils::random::Rnd;
 
     #[derive(Clone)]
@@ -132,8 +139,11 @@ mod test_knapsack {
         i: Option<usize>,
     }
 
-    impl ToggleOne {
-        fn setup() -> ToggleOne {
+    impl NeighborHandler for ToggleOne {
+        type State = StateImpl;
+        type Env = EnvImpl;
+
+        fn setup() -> Self {
             ToggleOne { i: None }
         }
 
@@ -195,7 +205,6 @@ mod test_knapsack {
             vec![],
             AnnealerConfig {
                 mode: AnnealerMode::Release,
-                start_count: 1,
             },
         );
         annealer.run();
