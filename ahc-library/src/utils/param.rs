@@ -67,14 +67,14 @@ fn test_define_params() {
 #[test]
 fn test_global_params() {
     mod p {
-        use once_cell::sync::Lazy;
+        use std::sync::LazyLock;
 
         params_impl! {
             START_TEMP: f64 = 1000.0,
             END_TEMP: f64 = 1.0,
         }
 
-        pub static PARAMS: Lazy<Params> = Lazy::new(|| Params::load());
+        pub static PARAMS: LazyLock<Params> = LazyLock::new(|| Params::load());
     }
 
     use p::PARAMS;
@@ -88,8 +88,8 @@ fn test_define_params_with_ranges() {
         { n: usize, m: usize },
         { START_TEMP: f64, END_TEMP: f64 },
         [
-            (0..=10, 10..=20) => { START_TEMP: 1000., END_TEMP: 10. },
-            (11..=20, 10..=20) => { START_TEMP: 2000., END_TEMP: 20. },
+            (0..10, 10..20) => { START_TEMP: 1000., END_TEMP: 10. },
+            (10..20, 10..20) => { START_TEMP: 2000., END_TEMP: 20. },
             _ => { START_TEMP: 2000., END_TEMP: 20. },
         ]
     }

@@ -56,7 +56,7 @@ impl<K: PartialOrd + Copy, V: Clone> BoundedSortedList<K, V> {
         }
     }
 
-    pub fn list(self) -> Vec<(K, V)> {
+    pub fn to_list(self) -> Vec<(K, V)> {
         let v = self.que.into_sorted_vec();
         v.into_iter().map(|e| (e.k, e.v)).collect()
     }
@@ -68,17 +68,19 @@ impl<K: PartialOrd + Copy, V: Clone> BoundedSortedList<K, V> {
 
 #[cfg(test)]
 mod tests {
+    use crate::utils::topklist::BoundedSortedList;
+
     #[test]
     fn test_bounded_sorted_list() {
-        let mut bsl = super::BoundedSortedList::new(3);
-        bsl.insert(5, "a");
-        bsl.insert(3, "b");
-        bsl.insert(4, "c");
-        assert_eq!(bsl.len(), 3);
-        assert!(!bsl.can_insert(6));
-        assert!(bsl.can_insert(2));
-        bsl.insert(2, "d");
-        let list = bsl.list();
+        let mut cands = BoundedSortedList::new(3);
+        cands.insert(5, "a");
+        cands.insert(3, "b");
+        cands.insert(4, "c");
+        assert_eq!(cands.len(), 3);
+        assert!(!cands.can_insert(6));
+        assert!(cands.can_insert(2));
+        cands.insert(2, "d");
+        let list = cands.to_list();
         assert_eq!(list, vec![(2, "d"), (3, "b"), (4, "c")]);
     }
 }
