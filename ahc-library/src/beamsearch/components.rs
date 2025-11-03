@@ -101,13 +101,6 @@ where
         let available_unit =
             (self.consumed_unit as f64 * (1. - time_progress) / time_progress).floor() as usize;
 
-        dbg!(
-            "consumed_unit={}, time_progress={:.4}, available_unit={}",
-            self.consumed_unit,
-            time_progress,
-            available_unit
-        );
-
         // remain_unit * (1 + E) < available_unit を満たす最大の`beam_width`を求める
         let width = {
             let (mut l, mut r) = (self.min_width, self.max_width + 1);
@@ -115,14 +108,6 @@ where
                 let w = (r + l) / 2;
                 let remain_unit = self.estimate_remain_unit(time_progress, w, cur_turn, end_turn);
 
-                dbg!(
-                    "  try width={}, remain_unit={}, available_unit={}, l={}, r={}",
-                    w,
-                    remain_unit,
-                    available_unit,
-                    l,
-                    r
-                );
                 if remain_unit as f64 * (1. + E) < available_unit as f64 {
                     l = w;
                 } else {

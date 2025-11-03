@@ -3,14 +3,14 @@ use std::collections::VecDeque;
 use crate::utils::{coor::Coor, fast_clear_array::FastClearArray2d, random::Rnd};
 
 pub trait PathFindState {
-    fn trans(&self, u: &Coor, path: &Vec<Coor>) -> Self;
+    fn trans(&self, u: &Coor, path: &[Coor]) -> Self;
 }
 
 #[derive(Clone, Copy)]
 pub struct DummyPathFindState;
 
 impl PathFindState for DummyPathFindState {
-    fn trans(&self, _: &Coor, _: &Vec<Coor>) -> Self {
+    fn trans(&self, _: &Coor, _: &[Coor]) -> Self {
         *self
     }
 }
@@ -92,7 +92,7 @@ impl BfsGridPathFinder {
     {
         self.reset();
 
-        self.dist.set(&start, 0);
+        self.dist.set(&start.into(), 0);
         self.q.push_back(*start);
         self.seen.push(*start);
 
@@ -101,19 +101,19 @@ impl BfsGridPathFinder {
                 return Some(v);
             }
 
-            let new_dist = self.dist.get(&v) + 1;
+            let new_dist = self.dist.get(&v.into()) + 1;
             for i in 0..4 {
                 let d = priority_d(i, &v, &mut self.rnd);
                 let u = v.add(&d);
                 if u.i < self.h
                     && u.j < self.w
                     && (trans_cond)(&u, &v)
-                    && new_dist < self.dist.get(&u)
+                    && new_dist < self.dist.get(&u.into())
                 {
                     self.q.push_back(u);
 
-                    self.dist.set(&u, new_dist);
-                    self.prev.set(&u, Some(v));
+                    self.dist.set(&u.into(), new_dist);
+                    self.prev.set(&u.into(), Some(v));
                     self.seen.push(u);
                 }
             }
@@ -125,7 +125,7 @@ impl BfsGridPathFinder {
     pub fn restore_path(&mut self, start: &Coor, end: &Coor) -> Vec<Coor> {
         let mut path = vec![*end];
         let mut cur = *end;
-        while let Some(p) = self.prev.get(&cur) {
+        while let Some(p) = self.prev.get(&cur.into()) {
             cur = p;
             path.push(cur);
         }

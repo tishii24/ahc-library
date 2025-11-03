@@ -66,10 +66,8 @@ where
     pub fn adopt(&mut self, cur_score: f64, new_score: f64) -> bool {
         let progress = self.get_progress();
         let cur_temp = self.temperature_scheduler.get_temp(progress);
-        let adopt = self
-            .criterion
-            .adopt(cur_score, new_score, cur_temp, progress, &mut self.rnd);
-        adopt
+        self.criterion
+            .adopt(cur_score, new_score, cur_temp, progress, &mut self.rnd)
     }
 
     pub fn get_progress(&self) -> f64 {

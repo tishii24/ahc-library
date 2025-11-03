@@ -1,12 +1,11 @@
-pub mod annealer;
 pub mod components;
+pub mod runner;
 pub mod scheduler;
 pub mod test;
 pub mod types;
 
 pub mod prelude {
     pub use crate::annealer::{
-        annealer::{Annealer, AnnealerConfig, AnnealerMode, Mutator},
         components::{
             criterion::AnnealingCriterion, criterion::HillClimbingCriterion,
             neighbor_generator::WeightedNeighborGenerator,
@@ -14,6 +13,7 @@ pub mod prelude {
             progress_scheduler::SecondProgressScheduler,
             temperature_scheduler::ExpTemperatureScheduler,
         },
+        runner::{Annealer, AnnealerConfig, AnnealerMode, Mutator},
         scheduler::AnnealerScheduler,
         types::{Env, State},
     };

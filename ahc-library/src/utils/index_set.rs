@@ -34,7 +34,7 @@ impl IndexSet {
             return;
         }
 
-        let p = self.pos[v] as usize;
+        let p = self.pos[v];
         let b = self.que[self.que.len() - 1];
         self.que.swap_remove(p);
         self.pos[b] = p;

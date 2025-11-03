@@ -1,4 +1,4 @@
-use crate::utils::{array2d::Array2d, coor::Coor};
+use crate::utils::array2d::Array2d;
 
 pub struct FastClearArray<T: Clone + Copy> {
     pub version: usize,
@@ -11,7 +11,7 @@ impl<T: Clone + Copy> FastClearArray<T> {
         FastClearArray {
             version: 0,
             values: vec![(!0, init_value); n],
-            init_value: init_value,
+            init_value,
         }
     }
 
@@ -50,16 +50,17 @@ impl<T: Clone + Copy> FastClearArray2d<T> {
     }
 
     #[inline]
-    pub fn get(&mut self, c: &Coor) -> T {
-        if self.values.get(c).0 != self.version {
-            self.values.set(c, (self.version, self.init_value));
+    pub fn get(&mut self, c: &(usize, usize)) -> T {
+        if self.values.get(&(c.0, c.1)).0 != self.version {
+            self.values
+                .set(&(c.0, c.1), (self.version, self.init_value));
         }
-        self.values.get(c).1
+        self.values.get(&(c.0, c.1)).1
     }
 
     #[inline]
-    pub fn set(&mut self, c: &Coor, new_value: T) {
-        self.values.set(c, (self.version, new_value));
+    pub fn set(&mut self, c: &(usize, usize), new_value: T) {
+        self.values.set(&(c.0, c.1), (self.version, new_value));
     }
 
     pub fn clear(&mut self) {
@@ -69,8 +70,6 @@ impl<T: Clone + Copy> FastClearArray2d<T> {
 
 #[cfg(test)]
 mod tests {
-    use crate::utils::coor::Coor;
-
     #[test]
     fn test_fast_clear_array() {
         let mut arr = super::FastClearArray::new(10, 0);
@@ -86,12 +85,12 @@ mod tests {
     #[test]
     fn test_fast_clear_array_2d() {
         let mut arr = super::FastClearArray2d::new(3, 4, 0);
-        assert_eq!(arr.get(&Coor::new(1, 2)), 0);
-        arr.set(&Coor::new(1, 2), 5);
-        assert_eq!(arr.get(&Coor::new(1, 2)), 5);
+        assert_eq!(arr.get(&(1, 2)), 0);
+        arr.set(&(1, 2), 5);
+        assert_eq!(arr.get(&(1, 2)), 5);
         arr.clear();
-        assert_eq!(arr.get(&Coor::new(1, 2)), 0);
-        arr.set(&Coor::new(1, 2), 7);
-        assert_eq!(arr.get(&Coor::new(1, 2)), 7);
+        assert_eq!(arr.get(&(1, 2)), 0);
+        arr.set(&(1, 2), 7);
+        assert_eq!(arr.get(&(1, 2)), 7);
     }
 }

@@ -274,7 +274,6 @@ pub mod callback {
             };
             if should_update {
                 self.best_state = Some(state.clone());
-                return;
             }
         }
 

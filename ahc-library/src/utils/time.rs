@@ -3,9 +3,9 @@ static mut R: f64 = 1.;
 
 #[allow(unused)]
 /// r - scaling factor for elapsed time
-pub fn start_clock(r: Option<f64>) {
+pub fn start_clock(r: f64) {
     unsafe {
-        R = r.unwrap_or(1.);
+        R = r;
     }
     let _ = elapsed_seconds();
 }

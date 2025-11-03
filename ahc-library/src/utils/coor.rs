@@ -67,12 +67,24 @@ impl Coor {
             Coor { i: 0, j: !0 },
         ];
         D4.iter()
-            .map(|d| self.add(&d))
+            .map(move |d| self.add(d))
             .filter(move |c| c.i < h && c.j < w)
     }
 
     pub fn manhattan_distance(a: &Coor, b: &Coor) -> usize {
         a.i.abs_diff(b.i) + a.j.abs_diff(b.j)
+    }
+}
+
+impl From<Coor> for (usize, usize) {
+    fn from(c: Coor) -> (usize, usize) {
+        (c.i, c.j)
+    }
+}
+
+impl From<&Coor> for (usize, usize) {
+    fn from(c: &Coor) -> (usize, usize) {
+        (c.i, c.j)
     }
 }
 

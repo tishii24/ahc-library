@@ -11,7 +11,7 @@ pub trait BeamWidthPolicy {
 /// Delegate trait for beam search
 pub trait BeamSearchDelegate<S, M> {
     /// 評価関数（大きい方が良い）
-    fn evaluate(&self, state: &S, material: &M) -> f64;
+    fn evaluate(&self, state: &mut S, material: &M) -> f64;
     /// 状態遷移関数
     fn transfer(&self, state: &S, material: &M) -> S;
     /// ハッシュ関数
@@ -105,7 +105,7 @@ where
     /// D: BeamSearchDelegate
     pub fn next_states<S, M, D>(
         &self,
-        states: Vec<S>,
+        mut states: Vec<S>,
         transfer_materials: Vec<(usize, M)>,
         delegate: &D,
     ) -> Vec<S>
@@ -119,7 +119,7 @@ where
 
         let mut cands = vec![];
         for (i, (state_i, material)) in transfer_materials.iter().enumerate() {
-            let score = delegate.evaluate(&states[*state_i], material);
+            let score = delegate.evaluate(&mut states[*state_i], material);
             cands.push((score, i));
         }
 
@@ -209,7 +209,7 @@ mod tests {
             c: f64,
         }
         impl BeamSearchDelegate<State, Material> for Delegate {
-            fn evaluate(&self, state: &State, material: &Material) -> f64 {
+            fn evaluate(&self, state: &mut State, material: &Material) -> f64 {
                 -((state.a + material.d) as f64 - self.c).powf(2.)
             }
 
