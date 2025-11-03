@@ -19,7 +19,7 @@ pub enum ScoreType {
 
 #[derive(Deserialize, Debug, Clone)]
 pub struct Settings {
-    pub storage_path: String,
+    pub storage_path: PathBuf,
     pub direction: Direction,
     pub score_type: ScoreType,
 }
@@ -34,12 +34,14 @@ pub struct PrunerConfig {
 pub enum OptunaParameterConfig {
     Int {
         name: String,
+        rust_type: String,
         min: i64,
         max: i64,
         default: i64,
     },
     Float {
         name: String,
+        rust_type: String,
         min: f64,
         max: f64,
         default: f64,
@@ -66,16 +68,19 @@ pub enum ParserConfig {
 pub enum InputParameterConfig {
     Int {
         name: String,
+        rust_type: String,
         parser: ParserConfig,
         partitions: Vec<i64>,
     },
     Float {
         name: String,
+        rust_type: String,
         parser: ParserConfig,
         partitions: Vec<f64>,
     },
     Categorical {
         name: String,
+        rust_type: String,
         parser: ParserConfig,
         categories: Vec<String>,
     },
@@ -83,11 +88,11 @@ pub enum InputParameterConfig {
 
 #[derive(Deserialize, Debug, Clone)]
 pub struct AutotuneConfig {
-    pub basedir: PathBuf,
+    pub base_dir: PathBuf,
     pub optuna_config_path: PathBuf,
     pub timeout: u64,
     pub num_total_seed: u64,
-    pub max_num_per_group: usize,
+    pub case_num_per_group: usize,
     pub input_params: Vec<InputParameterConfig>,
     pub optuna: OptunaConfig,
 }

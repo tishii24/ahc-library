@@ -19,3 +19,13 @@ struct LocalBackend {
 impl LocalBackend {
     fn new(config: &AutotuneConfig) {}
 }
+
+impl OptimizerBackend for LocalBackend {
+    fn build(input_group_builder: InputGroupBuilder<impl InputGenerator>) -> Self {
+        todo!()
+    }
+
+    fn optimize(&self) -> Result<()> {
+        todo!()
+    }
+}
