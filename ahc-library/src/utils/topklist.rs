@@ -9,13 +9,13 @@ struct Entry<K, V> {
 
 impl<K: PartialOrd, V> Ord for Entry<K, V> {
     fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-        self.partial_cmp(other).unwrap()
+        self.k.partial_cmp(&other.k).unwrap()
     }
 }
 
 impl<K: PartialOrd, V> PartialOrd for Entry<K, V> {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        Some(self.cmp(other))
+        self.k.partial_cmp(&other.k)
     }
 }
 
