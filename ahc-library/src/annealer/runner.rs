@@ -17,6 +17,7 @@ pub struct AnnealerConfig {
     pub mode: AnnealerMode,
 }
 
+#[allow(clippy::type_complexity)]
 pub struct Annealer<G, N, C, T, P>
 where
     G: NeighborGenerator<N>,
@@ -44,6 +45,7 @@ where
     T: TemperatureScheduler,
     P: ProgressScheduler,
 {
+    #[allow(clippy::type_complexity)]
     pub fn new(
         state: <N::H as NeighborHandler>::State,
         env: <N::H as NeighborHandler>::Env,

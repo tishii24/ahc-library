@@ -94,7 +94,7 @@ mod tests {
                 END_TEMP: f64 = 1.0,
             }
 
-            pub static PARAMS: LazyLock<Params> = LazyLock::new(|| Params::load());
+            pub static PARAMS: LazyLock<Params> = LazyLock::new(Params::load);
         }
 
         use p::PARAMS;

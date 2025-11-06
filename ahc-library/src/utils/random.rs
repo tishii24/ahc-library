@@ -12,7 +12,7 @@ impl Rnd {
     }
 
     #[inline(always)]
-    pub fn next(&mut self) -> u32 {
+    pub fn _next(&mut self) -> u32 {
         let mut x = self.state;
         x ^= x << 13;
         x ^= x >> 17;
@@ -23,26 +23,26 @@ impl Rnd {
 
     #[inline(always)]
     pub fn nextf(&mut self) -> f64 {
-        self.next() as f64 / ((1u64 << 32) as f64)
+        self._next() as f64 / ((1u64 << 32) as f64)
     }
 
     #[inline(always)]
     pub fn gen_index(&mut self, len: usize) -> usize {
         debug_assert!(len as u64 <= 1 << 32);
-        ((len as u64 * self.next() as u64) >> 32) as usize
+        ((len as u64 * self._next() as u64) >> 32) as usize
     }
 
     #[inline(always)]
     pub fn gen_range(&mut self, l: usize, r: usize) -> usize {
         debug_assert!(l < r);
         debug_assert!(r as u64 <= 1 << 32);
-        l + (((r - l) as u64 * self.next() as u64) >> 32) as usize
+        l + (((r - l) as u64 * self._next() as u64) >> 32) as usize
     }
 
     #[inline(always)]
     pub fn gen_rangef(&mut self, l: f64, r: f64) -> f64 {
         debug_assert!(l <= r);
-        l + self.next() as f64 * ((r - l) / ((1u64 << 32) as f64))
+        l + self._next() as f64 * ((r - l) / ((1u64 << 32) as f64))
     }
 
     #[inline(always)]

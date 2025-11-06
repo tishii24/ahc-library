@@ -15,7 +15,7 @@ impl<K: PartialOrd, V> Ord for Entry<K, V> {
 
 impl<K: PartialOrd, V> PartialOrd for Entry<K, V> {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        self.k.partial_cmp(&other.k)
+        Some(self.cmp(other))
     }
 }
 
@@ -63,6 +63,10 @@ impl<K: PartialOrd + Copy, V: Clone> BoundedSortedList<K, V> {
 
     pub fn len(&self) -> usize {
         self.que.len()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.que.is_empty()
     }
 }
 
