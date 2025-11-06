@@ -1,0 +1,8 @@
+[package]
+name = "example"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+ahc-library = { version = "0.1.0", path = "/Users/tatsuyaishii/dev/heuristics-contests/ahc-library/ahc-library" }
+proconio = "0.5.0"

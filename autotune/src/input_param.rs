@@ -1,5 +1,10 @@
 use std::{
-    collections::HashMap, fmt::Display, fs, hash::Hash, path::PathBuf, process::Command,
+    collections::HashMap,
+    fmt::Display,
+    fs,
+    hash::Hash,
+    path::{Path, PathBuf},
+    process::Command,
     str::FromStr,
 };
 
@@ -56,14 +61,16 @@ impl InputParameterConfig {
     }
 }
 
+#[derive(Clone, Debug)]
 pub struct InputPartition {
     pub key: String,
     pub match_arm_impl: String,
 }
 
-#[derive(Clone, Hash, PartialEq, Eq)]
+#[derive(Clone, Hash, PartialEq, Eq, Debug)]
 pub struct InputGroupKey(pub String);
 
+#[derive(Clone, Debug)]
 pub struct InputGroup {
     pub key: InputGroupKey,
     pub partitions: Vec<InputPartition>,
@@ -208,12 +215,12 @@ impl ToolInputGenerator {
 
 impl InputGenerator for ToolInputGenerator {
     fn generate_inputs(&self, seeds: &Vec<u64>) -> Result<Vec<String>, anyhow::Error> {
-        const IN_DIR: &str = ".in_autotune";
         const SEEDS_FILE: &str = "seeds.txt";
-        fs::create_dir_all(self.tool_path.join(IN_DIR))?;
+        let in_dir = Path::new(".in-autotune");
 
+        fs::create_dir_all(self.tool_path.join(in_dir))?;
         fs::write(
-            self.tool_path.join(IN_DIR).join(SEEDS_FILE),
+            self.tool_path.join(in_dir).join(SEEDS_FILE),
             seeds
                 .iter()
                 .map(|seed| seed.to_string())
@@ -227,22 +234,26 @@ impl InputGenerator for ToolInputGenerator {
                 "--release",
                 "--bin",
                 "gen",
-                SEEDS_FILE,
+                in_dir.join(SEEDS_FILE).to_str().unwrap(),
                 "--dir",
-                IN_DIR,
+                in_dir.to_str().unwrap(),
             ])
             .current_dir(&self.tool_path)
             .status()?;
 
         let input_files: Vec<String> = (0..seeds.len() as u64)
             .map(|i| {
-                let input_file = self.tool_path.join(IN_DIR).join(format!("{:04}.txt", i));
-                fs::read_to_string(input_file)
-                    .map_err(|e| anyhow::anyhow!("failed to read input file: {}", e))
+                let input_file = self.tool_path.join(in_dir).join(format!("{:04}.txt", i));
+                fs::read_to_string(&input_file).map_err(|e| {
+                    anyhow::anyhow!(
+                        "failed to read input file: {:?}",
+                        format!("{:?}: {:?}", input_file, e)
+                    )
+                })
             })
             .collect::<Result<Vec<_>>>()?;
 
-        fs::remove_dir_all(self.tool_path.join(IN_DIR))?;
+        fs::remove_dir_all(self.tool_path.join(in_dir))?;
 
         Ok(input_files)
     }
@@ -281,7 +292,7 @@ where
         &self,
         case_num_per_group: usize,
         total_seed: u64,
-    ) -> HashMap<InputGroup, Vec<u64>> {
+    ) -> Result<HashMap<InputGroup, Vec<u64>>> {
         const CHUNK_SIZE: u64 = 100;
 
         let mut input_group_seeds: HashMap<InputGroup, Vec<u64>> = HashMap::new();
@@ -290,10 +301,11 @@ where
             let case_num = CHUNK_SIZE.min(total_seed - seed_start);
             let inputs = self
                 .generator
-                .generate_inputs(&(seed_start..seed_start + case_num).collect())
-                .unwrap();
+                .generate_inputs(&(seed_start..seed_start + case_num).collect())?;
             for (i, input) in inputs.iter().enumerate() {
-                let input_group = self.get_input_group(input).unwrap();
+                let Some(input_group) = self.get_input_group(input) else {
+                    continue;
+                };
                 let seed = seed_start + i as u64;
 
                 let seeds = input_group_seeds.entry(input_group).or_insert(vec![]);
@@ -303,7 +315,7 @@ where
             }
         }
 
-        input_group_seeds
+        Ok(input_group_seeds)
     }
 }
 
@@ -390,8 +402,9 @@ mod tests {
         let case_num_per_group = 5;
         let total_seed = 10;
 
-        let input_group_seeds =
-            input_group_builder.generate_input_group_seeds(case_num_per_group, total_seed);
+        let input_group_seeds = input_group_builder
+            .generate_input_group_seeds(case_num_per_group, total_seed)
+            .unwrap();
         let input_group_seeds = input_group_seeds
             .into_iter()
             .map(|(k, v)| (k.key.0, v))

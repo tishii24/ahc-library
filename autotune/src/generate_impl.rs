@@ -30,7 +30,7 @@ pub fn generate_param_impl(
             .iter()
             .map(|p| p.get_name())
             .map(|name| {
-                let value = params.get(name).unwrap();
+                let value = params.get(&name).unwrap();
                 format!("{}: {}", name, value)
             })
             .collect();
@@ -60,11 +60,14 @@ pub fn generate_param_impl(
         ret.push_str(" },\n");
     }
 
-    // Default case (last one)
+    // Default case
     ret.push_str("        _ => { ");
-    if let Some((_, params)) = best_params.iter().next() {
-        ret.push_str(&joined_param_defs(optuna_params, params));
-    }
+    let params = optuna_params
+        .iter()
+        .cloned()
+        .map(|p| (p.get_name(), p.get_default_value_str()))
+        .collect::<HashMap<_, _>>();
+    ret.push_str(&joined_param_defs(optuna_params, &params));
     ret.push_str(" },\n");
 
     ret.push_str("    ]\n");
@@ -152,7 +155,7 @@ mod tests {
     [
         (group1impl) => { START_TEMP: 2000.0, END_TEMP: 20.0 },
         (group2impl) => { START_TEMP: 3000.0, END_TEMP: 30.0 },
-        _ => { START_TEMP: 2000.0, END_TEMP: 20.0 },
+        _ => { START_TEMP: 100.00000, END_TEMP: 10.00000 },
     ]
 }
 "#;

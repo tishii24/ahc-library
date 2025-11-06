@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
-use ahc_library::annealer::annealer::AnnealerMode;
 use ahc_library::annealer::prelude::*;
+use ahc_library::annealer::runner::AnnealerMode;
 use ahc_library::annealer::types::Callback;
 use ahc_library::params_impl;
 use ahc_library::utils::index_set::IndexSet;
@@ -459,7 +459,6 @@ fn main() {
         callbacks,
         AnnealerConfig {
             mode: AnnealerMode::Release,
-            start_count: 1,
         },
     );
     annealer.run();

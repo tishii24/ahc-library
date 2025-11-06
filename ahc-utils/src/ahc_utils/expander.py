@@ -1,3 +1,4 @@
+import os
 import pathlib
 import re
 import subprocess
@@ -9,11 +10,9 @@ import classopt
 @classopt.classopt(default_long=True)
 class Args:
     ahc_library_path: str = classopt.config(
-        required=True,
         help="Path to the AHC library directory",
     )
     solution_path: str = classopt.config(
-        required=True,
         help="Path to the solution directory",
     )
 
@@ -145,9 +144,21 @@ def apply_rustfmt(content: str) -> str:
 def main() -> None:
     args = Args.from_args()  # type: ignore
 
-    library = expand_ahc_library(pathlib.Path(args.ahc_library_path))
+    if args.ahc_library_path is not None:
+        ahc_library_path = pathlib.Path(args.ahc_library_path)
+    elif os.environ.get("AHC_LIBRARY_PATH") is not None:
+        ahc_library_path = pathlib.Path(os.environ["AHC_LIBRARY_PATH"])
+    else:
+        raise ValueError("AHC library path is not specified")
 
-    solution = expand_solution(pathlib.Path(args.solution_path))
+    if args.solution_path is not None:
+        solution_path = pathlib.Path(args.solution_path)
+    else:
+        solution_path = pathlib.Path(".")
+
+    library = expand_ahc_library(ahc_library_path)
+
+    solution = expand_solution(solution_path)
     solution = solution.replace("use ahc_library::", "use crate::ahc_library::")
 
     submission = solution + library

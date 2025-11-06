@@ -3,7 +3,8 @@ timeout: 30
 num_sample: 1000
 input_params:
   - name: N
-    type: usize
+    type: int
+    rust_type: usize
     min: 49
     max: 71
     parser:
@@ -21,11 +22,13 @@ optuna:
   params:
     - name: START_TEMP
       type: float
+      rust_type: f64
       default: 100.0
       min: 1.0
       max: 1000.0
     - name: END_TEMP
       type: float
+      rust_type: f64
       default: 0.01
       min: 0.001
       max: 0.9

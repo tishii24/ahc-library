@@ -23,7 +23,7 @@ pub struct PahcerOptunaClient;
 
 impl RunnerClient for PahcerOptunaClient {
     fn run(&self, work_dir: &PathBuf) -> Result<()> {
-        std::process::Command::new("pahcer")
+        Command::new("pahcer")
             .arg("run")
             .current_dir(work_dir)
             .status()?;
@@ -40,8 +40,8 @@ impl RunnerClient for PahcerOptunaClient {
         // initial run for calculation of relative score
         self.run(work_dir)?;
 
-        std::process::Command::new("pahcer-optuna")
-            .args([
+        Command::new("pahcer-optuna")
+            .args(&[
                 "--study_name",
                 study_name,
                 "--config_path",
@@ -60,25 +60,26 @@ impl RunnerClient for PahcerOptunaClient {
         study_name: &str,
         storage_path: &PathBuf,
     ) -> Result<HashMap<String, String>> {
-        let output = Command::new("optuna")
-            .args([
+        let stdout = Command::new("optuna")
+            .args(&[
                 "best-trial",
                 "--study-name",
                 study_name,
                 "--storage",
-                storage_path.to_str().unwrap(),
+                format!("sqlite:///{}", storage_path.to_str().unwrap()).as_str(),
                 "-f",
                 "json",
             ])
             .current_dir(work_dir)
             .output()?;
-
-        if !output.status.success() {
-            return Err(anyhow::anyhow!("Failed to get best parameters"));
+        if !stdout.status.success() {
+            anyhow::bail!(
+                "Failed to get best params: {}",
+                String::from_utf8_lossy(&stdout.stderr)
+            );
         }
-
-        let stdout = String::from_utf8(output.stdout)?;
-        let json: serde_json::Map<String, serde_json::Value> = serde_json::from_str(&stdout)?;
+        let output = String::from_utf8(stdout.stdout)?;
+        let json: serde_json::Map<String, serde_json::Value> = serde_json::from_str(&output)?;
         Ok(json
             .iter()
             .map(|(k, v)| (k.clone(), v.as_str().unwrap_or("").to_string()))
