@@ -13,6 +13,7 @@ impl<K: PartialOrd, V> Ord for Entry<K, V> {
     }
 }
 
+#[allow(clippy::non_canonical_partial_ord_impl)]
 impl<K: PartialOrd, V> PartialOrd for Entry<K, V> {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
         self.k.partial_cmp(&other.k)

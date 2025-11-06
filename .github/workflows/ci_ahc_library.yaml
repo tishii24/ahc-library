@@ -4,9 +4,13 @@ on:
   push:
     branches:
       - main
+    paths:
+      - "ahc-library/**"
   pull_request:
     branches:
       - main
+    paths:
+      - "ahc-library/**"
 
 jobs:
   test-rust:
