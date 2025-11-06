@@ -52,57 +52,84 @@ macro_rules! params_impl {
     };
 }
 
-#[test]
-fn test_define_params() {
-    params_impl! {
-        START_TEMP: f64 = 1000.0,
-        END_TEMP: f64 = 1.0,
-    }
-    let params = Params::load();
-    println!("{:?}", params);
-    assert_eq!(params.START_TEMP, 1000.0);
-    assert_eq!(params.END_TEMP, 1.0);
-}
-
-#[test]
-fn test_global_params() {
-    mod p {
-        use std::sync::LazyLock;
-
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn test_define_params() {
         params_impl! {
             START_TEMP: f64 = 1000.0,
             END_TEMP: f64 = 1.0,
         }
-
-        pub static PARAMS: LazyLock<Params> = LazyLock::new(|| Params::load());
+        let params = Params::load();
+        println!("{:?}", params);
+        assert_eq!(params.START_TEMP, 1000.0);
+        assert_eq!(params.END_TEMP, 1.0);
     }
 
-    use p::PARAMS;
-    assert_eq!(PARAMS.START_TEMP, 1000.0);
-    assert_eq!(PARAMS.END_TEMP, 1.0);
-}
+    #[test]
+    fn test_define_params_with_env() {
+        temp_env::with_vars(
+            [("START_TEMP", Some("5000.0")), ("END_TEMP", Some("5.0"))],
+            || {
+                params_impl! {
+                    START_TEMP: f64 = 1000.0,
+                    END_TEMP: f64 = 1.0,
+                }
 
-#[test]
-fn test_define_params_with_ranges() {
-    params_impl! {
-        { n: usize, m: usize },
-        { START_TEMP: f64, END_TEMP: f64 },
-        [
-            (0..10, 10..20) => { START_TEMP: 1000., END_TEMP: 10. },
-            (10..20, 10..20) => { START_TEMP: 2000., END_TEMP: 20. },
-            _ => { START_TEMP: 2000., END_TEMP: 20. },
-        ]
+                let params = Params::load();
+                println!("{:?}", params);
+                assert_eq!(params.START_TEMP, 5000.0);
+                assert_eq!(params.END_TEMP, 5.0);
+            },
+        );
     }
 
-    let p1 = Params::load(5, 15);
-    assert_eq!(p1.START_TEMP, 1000.);
-    assert_eq!(p1.END_TEMP, 10.);
+    #[test]
+    fn test_global_params() {
+        mod p {
+            use std::sync::LazyLock;
 
-    let p2 = Params::load(12, 15);
-    assert_eq!(p2.START_TEMP, 2000.);
-    assert_eq!(p2.END_TEMP, 20.);
+            params_impl! {
+                START_TEMP: f64 = 1000.0,
+                END_TEMP: f64 = 1.0,
+            }
 
-    let p3 = Params::load(100, 100);
-    assert_eq!(p3.START_TEMP, 2000.);
-    assert_eq!(p3.END_TEMP, 20.);
+            pub static PARAMS: LazyLock<Params> = LazyLock::new(|| Params::load());
+        }
+
+        use p::PARAMS;
+        assert_eq!(PARAMS.START_TEMP, 1000.0);
+        assert_eq!(PARAMS.END_TEMP, 1.0);
+    }
+
+    #[test]
+    fn test_define_params_with_ranges() {
+        params_impl! {
+            { n: usize, m: usize, k: usize, },
+            { START_TEMP: f64, END_TEMP: f64, },
+            [
+                (0..10, 10..20, 0,) => { START_TEMP: 1000., END_TEMP: 10. },
+                (10..20, 10..20, 0,) => { START_TEMP: 2000., END_TEMP: 20. },
+                (0..10, 10..20, 1,) => { START_TEMP: 10000., END_TEMP: 100. },
+                (10..20, 10..20, 1,) => { START_TEMP: 20000., END_TEMP: 200. },
+                _ => { START_TEMP: 2000., END_TEMP: 20. },
+            ]
+        }
+
+        let p1 = Params::load(5, 15, 0);
+        assert_eq!(p1.START_TEMP, 1000.);
+        assert_eq!(p1.END_TEMP, 10.);
+
+        let p2 = Params::load(12, 15, 0);
+        assert_eq!(p2.START_TEMP, 2000.);
+        assert_eq!(p2.END_TEMP, 20.);
+
+        let p3 = Params::load(100, 100, 0);
+        assert_eq!(p3.START_TEMP, 2000.);
+        assert_eq!(p3.END_TEMP, 20.);
+
+        let p4 = Params::load(5, 15, 1);
+        assert_eq!(p4.START_TEMP, 10000.);
+        assert_eq!(p4.END_TEMP, 100.);
+    }
 }
