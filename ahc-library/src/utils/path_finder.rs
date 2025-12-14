@@ -145,7 +145,7 @@ impl BfsGridPathFinder {
         let mut array2d = Array2d::init(self.h, self.w, 0);
         for i in 0..self.h {
             for j in 0..self.w {
-                array2d.set(&(i, j), self.dist.get(&(i, j)) as usize);
+                array2d[(i, j)] = self.dist.get(&(i, j)) as usize;
             }
         }
         array2d

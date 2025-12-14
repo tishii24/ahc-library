@@ -51,16 +51,15 @@ impl<T: Clone + Copy> FastClearArray2d<T> {
 
     #[inline]
     pub fn get(&mut self, c: &(usize, usize)) -> T {
-        if self.values.get(&(c.0, c.1)).0 != self.version {
-            self.values
-                .set(&(c.0, c.1), (self.version, self.init_value));
+        if self.values[*c].0 != self.version {
+            self.values[*c] = (self.version, self.init_value);
         }
-        self.values.get(&(c.0, c.1)).1
+        self.values[*c].1
     }
 
     #[inline]
     pub fn set(&mut self, c: &(usize, usize), new_value: T) {
-        self.values.set(&(c.0, c.1), (self.version, new_value));
+        self.values[*c] = (self.version, new_value);
     }
 
     pub fn clear(&mut self) {
@@ -86,16 +85,15 @@ impl<T: Clone + Copy> FastClearArray3d<T> {
 
     #[inline]
     pub fn get(&mut self, c: &(usize, usize, usize)) -> T {
-        if self.values.get(&(c.0, c.1, c.2)).0 != self.version {
-            self.values
-                .set(&(c.0, c.1, c.2), (self.version, self.init_value));
+        if self.values[*c].0 != self.version {
+            self.values[*c] = (self.version, self.init_value);
         }
-        self.values.get(&(c.0, c.1, c.2)).1
+        self.values[*c].1
     }
 
     #[inline]
     pub fn set(&mut self, c: &(usize, usize, usize), new_value: T) {
-        self.values.set(&(c.0, c.1, c.2), (self.version, new_value));
+        self.values[*c] = (self.version, new_value);
     }
 
     pub fn clear(&mut self) {

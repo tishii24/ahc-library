@@ -1,3 +1,7 @@
+use std::ops::{Index, IndexMut};
+
+use super::v2::V2;
+
 #[derive(Clone, Debug)]
 pub struct ArrayRef2d<T>
 where
@@ -26,21 +30,6 @@ where
     }
 
     #[inline]
-    pub fn get_ref(&self, c: &(usize, usize)) -> &T {
-        &self.values[c.0 * self.w + c.1]
-    }
-
-    #[inline]
-    pub fn get_mut(&mut self, c: &(usize, usize)) -> &mut T {
-        &mut self.values[c.0 * self.w + c.1]
-    }
-
-    #[inline]
-    pub fn set(&mut self, c: &(usize, usize), v: T) {
-        self.values[c.0 * self.w + c.1] = v;
-    }
-
-    #[inline]
     pub fn iter(&self) -> std::slice::Iter<'_, T> {
         self.values.iter()
     }
@@ -52,6 +41,50 @@ where
 {
     fn from(values: Vec<Vec<T>>) -> Self {
         ArrayRef2d::new(values)
+    }
+}
+
+impl<T> Index<V2<usize>> for ArrayRef2d<T>
+where
+    T: Clone,
+{
+    type Output = T;
+
+    #[inline]
+    fn index(&self, v: V2<usize>) -> &Self::Output {
+        &self.values[v.x * self.w + v.y]
+    }
+}
+
+impl<T> IndexMut<V2<usize>> for ArrayRef2d<T>
+where
+    T: Clone,
+{
+    #[inline]
+    fn index_mut(&mut self, v: V2<usize>) -> &mut Self::Output {
+        &mut self.values[v.x * self.w + v.y]
+    }
+}
+
+impl<T> Index<(usize, usize)> for ArrayRef2d<T>
+where
+    T: Clone,
+{
+    type Output = T;
+
+    #[inline]
+    fn index(&self, (x, y): (usize, usize)) -> &Self::Output {
+        &self.values[x * self.w + y]
+    }
+}
+
+impl<T> IndexMut<(usize, usize)> for ArrayRef2d<T>
+where
+    T: Clone,
+{
+    #[inline]
+    fn index_mut(&mut self, (x, y): (usize, usize)) -> &mut Self::Output {
+        &mut self.values[x * self.w + y]
     }
 }
 
@@ -83,16 +116,6 @@ where
     }
 
     #[inline]
-    pub fn get(&self, c: &(usize, usize)) -> T {
-        self.values[c.0 * self.w + c.1]
-    }
-
-    #[inline]
-    pub fn set(&mut self, c: &(usize, usize), v: T) {
-        self.values[c.0 * self.w + c.1] = v;
-    }
-
-    #[inline]
     pub fn iter(&self) -> std::slice::Iter<'_, T> {
         self.values.iter()
     }
@@ -104,6 +127,50 @@ where
 {
     fn from(values: Vec<Vec<T>>) -> Self {
         Array2d::new(values)
+    }
+}
+
+impl<T> Index<V2<usize>> for Array2d<T>
+where
+    T: Clone + Copy,
+{
+    type Output = T;
+
+    #[inline]
+    fn index(&self, v: V2<usize>) -> &Self::Output {
+        &self.values[v.x * self.w + v.y]
+    }
+}
+
+impl<T> IndexMut<V2<usize>> for Array2d<T>
+where
+    T: Clone + Copy,
+{
+    #[inline]
+    fn index_mut(&mut self, v: V2<usize>) -> &mut Self::Output {
+        &mut self.values[v.x * self.w + v.y]
+    }
+}
+
+impl<T> Index<(usize, usize)> for Array2d<T>
+where
+    T: Clone + Copy,
+{
+    type Output = T;
+
+    #[inline]
+    fn index(&self, (x, y): (usize, usize)) -> &Self::Output {
+        &self.values[x * self.w + y]
+    }
+}
+
+impl<T> IndexMut<(usize, usize)> for Array2d<T>
+where
+    T: Clone + Copy,
+{
+    #[inline]
+    fn index_mut(&mut self, (x, y): (usize, usize)) -> &mut Self::Output {
+        &mut self.values[x * self.w + y]
     }
 }
 
@@ -126,26 +193,65 @@ where
         let values = vec![init_value; d0 * d1 * d2];
         Array3d { d0, d1, d2, values }
     }
+}
+
+impl<T> Index<(usize, usize, usize)> for Array3d<T>
+where
+    T: Clone + Copy,
+{
+    type Output = T;
 
     #[inline]
-    pub fn get(&self, c: &(usize, usize, usize)) -> T {
-        self.values[c.0 * self.d1 * self.d2 + c.1 * self.d2 + c.2]
+    fn index(&self, (x, y, z): (usize, usize, usize)) -> &Self::Output {
+        &self.values[x * self.d1 * self.d2 + y * self.d2 + z]
     }
+}
 
+impl<T> IndexMut<(usize, usize, usize)> for Array3d<T>
+where
+    T: Clone + Copy,
+{
     #[inline]
-    pub fn set(&mut self, c: &(usize, usize, usize), v: T) {
-        self.values[c.0 * self.d1 * self.d2 + c.1 * self.d2 + c.2] = v;
+    fn index_mut(&mut self, (x, y, z): (usize, usize, usize)) -> &mut Self::Output {
+        &mut self.values[x * self.d1 * self.d2 + y * self.d2 + z]
     }
 }
 
 #[cfg(test)]
 mod tests {
+    use super::*;
+
     #[test]
-    fn test_array2d() {
-        let mut a = super::Array2d::new(vec![vec![0; 3]; 2]);
-        assert_eq!(a.w, 3);
-        assert_eq!(a.get(&(1, 2)), 0);
-        a.set(&(1, 2), 5);
-        assert_eq!(a.get(&(1, 2)), 5);
+    fn test_array2d_index_v2() {
+        let mut a = Array2d::new(vec![vec![0; 3]; 2]);
+        let v = V2::new(1, 2);
+        assert_eq!(a[v], 0);
+        a[v] = 5;
+        assert_eq!(a[v], 5);
+    }
+
+    #[test]
+    fn test_array2d_index_tuple() {
+        let mut a = Array2d::new(vec![vec![0; 3]; 2]);
+        assert_eq!(a[(1, 2)], 0);
+        a[(1, 2)] = 5;
+        assert_eq!(a[(1, 2)], 5);
+    }
+
+    #[test]
+    fn test_arrayref2d_index_v2() {
+        let mut a = ArrayRef2d::init(3, 4, String::from("test"));
+        let v = V2::new(1, 2);
+        assert_eq!(a[v], "test");
+        a[v] = String::from("modified");
+        assert_eq!(a[v], "modified");
+    }
+
+    #[test]
+    fn test_arrayref2d_index_tuple() {
+        let mut a = ArrayRef2d::init(3, 4, String::from("test"));
+        assert_eq!(a[(1, 2)], "test");
+        a[(1, 2)] = String::from("modified");
+        assert_eq!(a[(1, 2)], "modified");
     }
 }
