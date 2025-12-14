@@ -60,9 +60,9 @@ pub mod criterion {
     impl Criterion for HillClimbingCriterion {
         fn adopt(&self, cur_score: f64, new_score: f64, _: f64, _: f64, _: &mut Rnd) -> bool {
             if self.is_maximize {
-                new_score > cur_score
+                new_score >= cur_score
             } else {
-                new_score < cur_score
+                new_score <= cur_score
             }
         }
     }

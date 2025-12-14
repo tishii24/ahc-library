@@ -27,6 +27,12 @@ impl Rnd {
     }
 
     #[inline(always)]
+    pub fn choice<T: Clone + Copy>(&mut self, v: &[T]) -> T {
+        let idx = self.gen_index(v.len());
+        v[idx]
+    }
+
+    #[inline(always)]
     pub fn gen_index(&mut self, len: usize) -> usize {
         debug_assert!(len as u64 <= 1 << 32);
         ((len as u64 * self._next() as u64) >> 32) as usize

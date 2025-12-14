@@ -3,19 +3,17 @@ use std::collections::HashSet;
 use crate::utils::time;
 
 pub trait BeamWidthPolicy {
-    fn suggest_width(&self, time_progress: f64, cur_turn: usize, end_turn: usize) -> usize;
+    fn suggest_width(&self, elapsed_sec: f64, cur_turn: usize, end_turn: usize) -> usize;
     fn start_unit(&mut self) {}
     fn end_unit(&mut self) {}
 }
 
 /// Delegate trait for beam search
 pub trait BeamSearchDelegate<S, M> {
-    /// 評価関数（大きい方が良い）
-    fn evaluate(&self, state: &mut S, material: &M) -> f64;
+    /// scoreとhashの評価（scoreは大きい方が良い）
+    fn evaluate(&self, state: &mut S, material: &M) -> (f64, u64);
     /// 状態遷移関数
     fn transfer(&self, state: &S, material: &M) -> S;
-    /// ハッシュ関数
-    fn hash(&self, state: &S, material: &M) -> u64;
 }
 
 enum BeamSearchRunnerStatus {
@@ -50,7 +48,6 @@ where
     W: BeamWidthPolicy,
 {
     status: BeamSearchRunnerStatus,
-    desired_duration_sec: f64,
     end_turn: usize,
     width_policy: W,
 }
@@ -59,10 +56,9 @@ impl<W> BeamSearchRunner<W>
 where
     W: BeamWidthPolicy,
 {
-    pub fn new(desired_duration_sec: f64, end_turn: usize, width_policy: W) -> Self {
+    pub fn new(end_turn: usize, width_policy: W) -> Self {
         BeamSearchRunner {
             status: BeamSearchRunnerStatus::NotStarted,
-            desired_duration_sec,
             end_turn,
             width_policy,
         }
@@ -112,27 +108,30 @@ where
     where
         D: BeamSearchDelegate<S, M>,
     {
-        let (time_progress, cur_turn) = self.get_progress();
+        let (elapsed_sec, cur_turn) = self.get_progress();
         let beam_width = self
             .width_policy
-            .suggest_width(time_progress, cur_turn, self.end_turn);
+            .suggest_width(elapsed_sec, cur_turn, self.end_turn);
 
         let mut cands = vec![];
         for (i, (state_i, material)) in transfer_materials.iter().enumerate() {
-            let score = delegate.evaluate(&mut states[*state_i], material);
-            cands.push((score, i));
+            let (score, hash) = delegate.evaluate(&mut states[*state_i], material);
+            cands.push((score, hash, i));
         }
 
         let mut set = HashSet::new();
         cands.sort_by(|a, b| b.0.partial_cmp(&a.0).unwrap());
         let cands = cands
             .into_iter()
-            .map(|(_, idx)| idx)
-            .filter(|&idx| {
-                let (state_i, material) = &transfer_materials[idx];
-                let h = delegate.hash(&states[*state_i], material);
-                set.insert(h)
-            })
+            .filter_map(
+                |(_, hash, idx)| {
+                    if set.insert(hash) {
+                        Some(idx)
+                    } else {
+                        None
+                    }
+                },
+            )
             .take(beam_width)
             .collect::<Vec<usize>>();
 
@@ -174,9 +173,7 @@ where
             }
         };
         let elapsed_sec = time::elapsed_seconds() - start_time;
-        let time_progress = (elapsed_sec / self.desired_duration_sec).min(1.);
-
-        (time_progress, cur_turn)
+        (elapsed_sec, cur_turn)
     }
 
     pub fn start_unit(&mut self) {
@@ -209,8 +206,10 @@ mod tests {
             c: f64,
         }
         impl BeamSearchDelegate<State, Material> for Delegate {
-            fn evaluate(&self, state: &mut State, material: &Material) -> f64 {
-                -((state.a + material.d) as f64 - self.c).powf(2.)
+            fn evaluate(&self, state: &mut State, material: &Material) -> (f64, u64) {
+                let score = -((state.a + material.d) as f64 - self.c).powf(2.);
+                let hash = (state.a + material.d) as u64;
+                (score, hash)
             }
 
             fn transfer(&self, state: &State, material: &Material) -> State {
@@ -218,16 +217,12 @@ mod tests {
                     a: state.a + material.d,
                 }
             }
-
-            fn hash(&self, state: &State, material: &Material) -> u64 {
-                (state.a + material.d) as u64
-            }
         }
 
         let states = vec![State { a: 1 }];
         let policy = FixedBeamWidthPolicy::new(5);
         let delegate = Delegate { c: global_c };
-        let mut runner = BeamSearchRunner::new(5., 3, policy);
+        let mut runner = BeamSearchRunner::new(3, policy);
         let states = runner.run(
             states,
             |_, _| (1..=5).map(|d| Material { d }).collect(),

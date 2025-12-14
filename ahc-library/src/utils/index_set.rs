@@ -49,8 +49,12 @@ impl IndexSet {
         self.que.len()
     }
 
-    pub fn get_random(&self, rnd: &mut Rnd) -> usize {
-        self.que[rnd.gen_index(self.que.len())]
+    pub fn get_first(&self) -> Option<usize> {
+        self.que.get(0).copied()
+    }
+
+    pub fn get_random(&self, rnd: &mut Rnd) -> Option<usize> {
+        self.que.get(rnd.gen_index(self.que.len())).copied()
     }
 
     pub fn iter(&self) -> impl Iterator<Item = &usize> {

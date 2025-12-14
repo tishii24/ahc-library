@@ -44,6 +44,7 @@ pub struct DynamicBeamWidthPolicy<E>
 where
     E: BeamUnitEstimator,
 {
+    desired_time_sec: f64,
     consumed_unit: usize,
     initial_width: usize,
     min_width: usize,
@@ -56,12 +57,14 @@ where
     E: BeamUnitEstimator,
 {
     pub fn new(
+        desired_time_sec: f64,
         initial_width: usize,
         min_width: usize,
         max_width: usize,
         unit_estimator: E,
     ) -> Self {
         DynamicBeamWidthPolicy {
+            desired_time_sec,
             consumed_unit: 0,
             initial_width,
             min_width,
@@ -160,7 +163,7 @@ mod tests {
         const W: usize = 5;
         const END_TURN: usize = 4;
         let estimator = FixedBeamUnitEstimator;
-        let mut policy = DynamicBeamWidthPolicy::new(W, 1, 10, estimator);
+        let mut policy = DynamicBeamWidthPolicy::new(1.0, W, 1, 10, estimator);
         assert_eq!(policy.suggest_width(0.0, 0, END_TURN), W);
         for _ in 0..W {
             policy.end_unit();

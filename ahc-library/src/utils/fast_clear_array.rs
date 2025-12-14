@@ -1,4 +1,4 @@
-use crate::utils::array2d::Array2d;
+use crate::utils::array2d::{Array2d, Array3d};
 
 pub struct FastClearArray<T: Clone + Copy> {
     pub version: usize,
@@ -33,7 +33,7 @@ impl<T: Clone + Copy> FastClearArray<T> {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct FastClearArray2d<T: Clone + Copy> {
     pub version: usize,
     pub values: Array2d<(usize, T)>,
@@ -61,6 +61,41 @@ impl<T: Clone + Copy> FastClearArray2d<T> {
     #[inline]
     pub fn set(&mut self, c: &(usize, usize), new_value: T) {
         self.values.set(&(c.0, c.1), (self.version, new_value));
+    }
+
+    pub fn clear(&mut self) {
+        self.version += 1;
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct FastClearArray3d<T: Clone + Copy> {
+    pub version: usize,
+    pub values: Array3d<(usize, T)>,
+    pub init_value: T,
+}
+
+impl<T: Clone + Copy> FastClearArray3d<T> {
+    pub fn new(d0: usize, d1: usize, d2: usize, init_value: T) -> FastClearArray3d<T> {
+        FastClearArray3d {
+            version: 0,
+            values: Array3d::init(d0, d1, d2, (0, init_value)),
+            init_value,
+        }
+    }
+
+    #[inline]
+    pub fn get(&mut self, c: &(usize, usize, usize)) -> T {
+        if self.values.get(&(c.0, c.1, c.2)).0 != self.version {
+            self.values
+                .set(&(c.0, c.1, c.2), (self.version, self.init_value));
+        }
+        self.values.get(&(c.0, c.1, c.2)).1
+    }
+
+    #[inline]
+    pub fn set(&mut self, c: &(usize, usize, usize), new_value: T) {
+        self.values.set(&(c.0, c.1, c.2), (self.version, new_value));
     }
 
     pub fn clear(&mut self) {
