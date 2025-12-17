@@ -9,6 +9,8 @@ use crate::{
     utils::random::Rnd,
 };
 
+const NUM_PHASE: usize = 3;
+
 enum AnnealerSchedulerStatus {
     NotStarted,
     InProgress,
@@ -138,8 +140,8 @@ where
     P: ProgressScheduler,
 {
     inner: AnnealerScheduler<C, T, P>,
-    iteration: Vec<usize>,
-    adopted: Vec<usize>,
+    iteration: Vec<[usize; NUM_PHASE]>,
+    adopted: Vec<[usize; NUM_PHASE]>,
 }
 
 impl<C, T, P> AnnealerSchedulerWithStatistics<C, T, P>
@@ -152,8 +154,8 @@ where
         assert!(n_types > 0, "n_types must be > 0");
         Self {
             inner,
-            iteration: vec![0; n_types],
-            adopted: vec![0; n_types],
+            iteration: vec![[0; NUM_PHASE]; n_types],
+            adopted: vec![[0; NUM_PHASE]; n_types],
         }
     }
 
@@ -162,21 +164,25 @@ where
     }
 
     pub fn adopt(&mut self, t: usize, cur_score: f64, new_score: f64) -> bool {
-        self.iteration[t] += 1;
+        // phase index: 0..=NUM_PHASE-1 based on current progress
+        let progress = self.inner.get_progress();
+        let phase = ((progress * NUM_PHASE as f64).floor() as usize).min(NUM_PHASE - 1);
+
+        self.iteration[t][phase] += 1;
         let adopted = self.inner.adopt(cur_score, new_score);
         if adopted {
-            self.adopted[t] += 1;
+            self.adopted[t][phase] += 1;
         }
         adopted
     }
 
     #[inline]
-    pub fn get_adopted(&self) -> &[usize] {
+    pub fn get_adopted(&self) -> &[[usize; NUM_PHASE]] {
         &self.adopted
     }
 
     #[inline]
-    pub fn get_iteration(&self) -> &[usize] {
+    pub fn get_iteration(&self) -> &[[usize; NUM_PHASE]] {
         &self.iteration
     }
 
@@ -185,11 +191,18 @@ where
         self.inner.get_progress()
     }
 
-    /// Also prints totals and current progress.
     pub fn print_statistics(&self) {
         let n = self.iteration.len();
-        let total_iter: usize = self.iteration.iter().copied().sum();
-        let total_adopt: usize = self.adopted.iter().copied().sum();
+        let total_iter: usize = self
+            .iteration
+            .iter()
+            .map(|row| row.iter().sum::<usize>())
+            .sum();
+        let total_adopt: usize = self
+            .adopted
+            .iter()
+            .map(|row| row.iter().sum::<usize>())
+            .sum();
         let total_rate = if total_iter == 0 {
             0.0
         } else {
@@ -205,8 +218,8 @@ where
         );
         eprintln!("{}", "-".repeat(6 + 3 + 12 + 3 + 12 + 3 + 10));
         for t in 0..n {
-            let it = self.iteration[t];
-            let ad = self.adopted[t];
+            let it: usize = self.iteration[t].iter().sum();
+            let ad: usize = self.adopted[t].iter().sum();
             let rate = if it == 0 {
                 0.0
             } else {
@@ -219,6 +232,103 @@ where
             "{:>6} | {:>12} | {:>12} | {:>10.2}",
             "total", total_adopt, total_iter, total_rate
         );
+
+        // Per-type x per-phase acceptance rate (%)
+        eprintln!("");
+        eprintln!("per-type per-phase acceptance rate (%)");
+        // header
+        {
+            use std::fmt::Write as _;
+            let mut header = String::new();
+            let _ = write!(&mut header, "{:>6} |", "type");
+            for p in 0..NUM_PHASE {
+                let _ = write!(&mut header, " {:>8}", format!("p{}", p));
+            }
+            let _ = write!(&mut header, " | {:>8}", "avg");
+            eprintln!("{}", header);
+        }
+        let sep_len = 6 + 3 + NUM_PHASE * 9 + 3 + 8;
+        eprintln!("{}", "-".repeat(sep_len));
+        for t in 0..n {
+            let mut avg_it = 0usize;
+            let mut avg_ad = 0usize;
+            let mut rates = vec![0.0f64; NUM_PHASE];
+            for p in 0..NUM_PHASE {
+                let it = self.iteration[t][p];
+                let ad = self.adopted[t][p];
+                avg_it += it;
+                avg_ad += ad;
+                rates[p] = if it == 0 {
+                    0.0
+                } else {
+                    (ad as f64) / (it as f64) * 100.0
+                };
+            }
+            let avg_rate = if avg_it == 0 {
+                0.0
+            } else {
+                (avg_ad as f64) / (avg_it as f64) * 100.0
+            };
+            use std::fmt::Write as _;
+            let mut line = String::new();
+            let _ = write!(&mut line, "{:>6} |", t);
+            for p in 0..NUM_PHASE {
+                let _ = write!(&mut line, " {:>8.2}", rates[p]);
+            }
+            let _ = write!(&mut line, " | {:>8.2}", avg_rate);
+            eprintln!("{}", line);
+        }
+
+        // Per-phase totals across all types
+        let mut phase_iter = [0usize; NUM_PHASE];
+        let mut phase_adopt = [0usize; NUM_PHASE];
+        for t in 0..n {
+            for p in 0..NUM_PHASE {
+                phase_iter[p] += self.iteration[t][p];
+                phase_adopt[p] += self.adopted[t][p];
+            }
+        }
+        eprintln!("");
+        eprintln!("per-phase totals:");
+        {
+            use std::fmt::Write as _;
+            let mut header = String::new();
+            let _ = write!(&mut header, "{:>6} |", "phase");
+            for p in 0..NUM_PHASE {
+                let _ = write!(&mut header, " {:>8}", format!("p{}", p));
+            }
+            let _ = write!(&mut header, " | {:>8}", "avg");
+            eprintln!("{}", header);
+        }
+        let sep_len = 6 + 3 + NUM_PHASE * 9 + 3 + 8;
+        eprintln!("{}", "-".repeat(sep_len));
+        let mut avg_it = 0usize;
+        let mut avg_ad = 0usize;
+        let mut rates = vec![0.0f64; NUM_PHASE];
+        for p in 0..NUM_PHASE {
+            let it = phase_iter[p];
+            let ad = phase_adopt[p];
+            avg_it += it;
+            avg_ad += ad;
+            rates[p] = if it == 0 {
+                0.0
+            } else {
+                (ad as f64) / (it as f64) * 100.0
+            };
+        }
+        let avg_rate = if avg_it == 0 {
+            0.0
+        } else {
+            (avg_ad as f64) / (avg_it as f64) * 100.0
+        };
+        use std::fmt::Write as _;
+        let mut line = String::new();
+        let _ = write!(&mut line, "{:>6} |", "total");
+        for p in 0..NUM_PHASE {
+            let _ = write!(&mut line, " {:>8.2}", rates[p]);
+        }
+        let _ = write!(&mut line, " | {:>8.2}", avg_rate);
+        eprintln!("{}", line);
     }
 }
 
@@ -301,11 +411,19 @@ mod tests {
             );
         let mut total_iterations = 0;
         while scheduler.to_next_iter() {
-            scheduler.adopt(total_iterations % N_TYPES, 1., 2.);
+            scheduler.adopt(
+                total_iterations % N_TYPES,
+                1.,
+                2. * (total_iterations % 2) as f64,
+            );
             total_iterations += 1;
         }
 
-        let recorded_iterations: usize = scheduler.get_iteration().iter().sum();
+        let recorded_iterations: usize = scheduler
+            .get_iteration()
+            .iter()
+            .map(|row| row.iter().sum::<usize>())
+            .sum();
         scheduler.print_statistics();
         assert_eq!(total_iterations, recorded_iterations);
     }
