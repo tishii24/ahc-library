@@ -13,9 +13,7 @@ class Args:
     config_path: str = classopt.config(
         "--config", required=True, help="Path to config file"
     )
-    study_name: str = classopt.config(
-        "--study-name", required=True, help="Name of the study"
-    )
+    study_name: str = classopt.config("--study-name", help="Name of the study")
 
 
 def main() -> None:
@@ -26,14 +24,16 @@ def main() -> None:
 
     config = OptunaConfig(**config)
 
-    try:
-        best_params = get_best_values_from_optuna_study(
-            args.study_name, config.settings.storage_path
-        )
-    except Exception:
-        best_params = {}
+    best_params = {}
+    if args.study_name is not None:
+        try:
+            best_params = get_best_values_from_optuna_study(
+                args.study_name, config.settings.storage_path
+            )
+        except Exception:
+            pass
 
-    impl = generate_impl(best_params, config.optuna.params)
+    impl = generate_impl(best_params, config.params)
     print(impl)
 
 

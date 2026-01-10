@@ -149,23 +149,24 @@ def main() -> None:
     elif os.environ.get("AHC_LIBRARY_PATH") is not None:
         ahc_library_path = pathlib.Path(os.environ["AHC_LIBRARY_PATH"])
     else:
-        raise ValueError("AHC library path is not specified")
+        ahc_library_path = None
 
     if args.solution_path is not None:
         solution_path = pathlib.Path(args.solution_path)
     else:
         solution_path = pathlib.Path(".")
 
-    library = expand_ahc_library(ahc_library_path)
-
     solution = expand_solution(solution_path)
     solution = solution.replace("use ahc_library::", "use crate::ahc_library::")
 
-    submission = solution + library
-    submission = replace_macros(content=submission)
-    submission = apply_rustfmt(submission)
+    if ahc_library_path is not None:
+        library = expand_ahc_library(ahc_library_path)
+        solution += library
 
-    print(submission)
+    solution = replace_macros(content=solution)
+    solution = apply_rustfmt(solution)
+
+    print(solution)
 
 
 if __name__ == "__main__":
