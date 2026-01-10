@@ -1,6 +1,6 @@
 use std::collections::VecDeque;
 
-use crate::utils::{array2d::Array2d, fast_clear_array::FastClearArray2d, random::Random, v2::V2};
+use crate::utils::{fast_clear_array::FastClearArray2d, ndarray::Array2d, random::Random, v2::V2};
 
 pub trait PathFindState {
     fn trans(&self, u: &V2<usize>, path: &[V2<usize>]) -> Self;

@@ -8,6 +8,21 @@ pub const D_RIGHT: V2<usize> = V2 { x: 0, y: 1 };
 
 pub const D4: [V2<usize>; 4] = [D_UP, D_DOWN, D_LEFT, D_RIGHT];
 
+/// 2D Vector that supports basic arithmetic operations.
+/// # Examples
+/// ```
+/// use ahc_library::utils::v2::V2;
+/// let v1 = V2::new(1, 2);
+/// let v2 = V2::new(3, 4);
+/// let v3 = v1 + v2;
+/// assert_eq!(v3.x, 4);
+/// assert_eq!(v3.y, 6);
+///
+/// let mut v4 = V2::new(5, 6);
+/// v4 += 10;
+/// assert_eq!(v4.x, 15);
+/// assert_eq!(v4.y, 16);
+/// ```
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub struct V2<T>
 where

@@ -1,6 +1,6 @@
-pub mod array2d;
 pub mod fast_clear_array;
 pub mod index_set;
+pub mod ndarray;
 pub mod object_pool;
 pub mod param;
 pub mod path_finder;

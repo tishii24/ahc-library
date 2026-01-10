@@ -203,7 +203,7 @@ where
         self.inner.get_progress()
     }
 
-    pub fn print_statistics(&self) {
+    pub fn eprint_statistics(&self) {
         let n = self.iteration.len();
         let total_iter: usize = self
             .iteration
@@ -451,7 +451,7 @@ mod tests {
             .iter()
             .map(|row| row.iter().sum::<usize>())
             .sum();
-        scheduler.print_statistics();
+        scheduler.eprint_statistics();
         assert_eq!(total_iterations, recorded_iterations);
     }
 }

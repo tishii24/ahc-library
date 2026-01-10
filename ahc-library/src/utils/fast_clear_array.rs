@@ -1,4 +1,4 @@
-use crate::utils::array2d::{Array2d, Array3d};
+use crate::utils::ndarray::{Array2d, Array3d};
 
 pub struct FastClearArray<T: Clone + Copy> {
     pub version: usize,

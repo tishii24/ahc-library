@@ -88,6 +88,28 @@ where
     }
 }
 
+/// A 2D array stored in a 1D Vec.
+/// The element type T must implement Clone and Copy.
+///
+/// # Example
+/// ```
+/// use ahc_library::utils::ndarray::Array2d;
+/// let mut array = Array2d::new(vec![vec![1, 2, 3], vec![4, 5, 6]]);
+/// assert_eq!(array[(0, 0)], 1);
+/// assert_eq!(array[(1, 2)], 6);
+/// array[(0, 1)] = 10;
+/// assert_eq!(array[(0, 1)], 10);
+/// ```
+///
+/// You can use V2<usize> as index as well:
+/// ```
+/// use ahc_library::utils::{ndarray::Array2d, v2::V2};
+/// let mut array = Array2d::new(vec![vec![1, 2, 3], vec![4, 5, 6]]);
+/// let v = V2::new(1, 0);
+/// assert_eq!(array[v], 4);
+/// array[v] = 20;
+/// assert_eq!(array[v], 20);
+/// ```
 #[derive(Clone, Debug)]
 pub struct Array2d<T>
 where

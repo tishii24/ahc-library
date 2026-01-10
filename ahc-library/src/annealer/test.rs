@@ -163,7 +163,7 @@ mod test_knapsack {
             true
         }
 
-        fn revert<R: Random>(&mut self, state: &mut StateImpl, env: &EnvImpl, rnd: &mut R) {
+        fn revert<R: Random>(&mut self, state: &mut StateImpl, env: &EnvImpl, _: &mut R) {
             let i = self.i.unwrap();
             if state.used[i] {
                 state.weight_sum -= env.items[i].0;
