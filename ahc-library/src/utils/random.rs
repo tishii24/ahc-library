@@ -1,3 +1,5 @@
+use rand_pcg::rand_core::{RngCore, SeedableRng};
+
 pub trait Random {
     fn new(seed: u32) -> Self;
     fn _next(&mut self) -> u32;
@@ -63,6 +65,24 @@ impl Random for XorShift32 {
         x ^= x << 5;
         self.state = x;
         x
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct RandPcg64Mcg {
+    inner: rand_pcg::Pcg64Mcg,
+}
+
+impl Random for RandPcg64Mcg {
+    fn new(seed: u32) -> Self {
+        Self {
+            inner: rand_pcg::Pcg64Mcg::seed_from_u64(seed as u64),
+        }
+    }
+
+    #[inline(always)]
+    fn _next(&mut self) -> u32 {
+        self.inner.next_u32()
     }
 }
 
@@ -156,5 +176,15 @@ mod tests {
         }
         let mean = sum / 10000.;
         assert!((mean - 0.333).abs() < 0.01);
+    }
+
+    #[test]
+    fn test_rand_pcg64_mcg() {
+        let mut rnd = RandPcg64Mcg::new(42);
+        let mut cnt = vec![0; 100];
+        for _ in 0..10000 {
+            cnt[rnd.gen_index(100)] += 1;
+        }
+        assert!(cnt.iter().all(|&c| 50 < c && c < 150));
     }
 }
