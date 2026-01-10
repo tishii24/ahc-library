@@ -1,7 +1,7 @@
 pub mod neighbor_generator {
     use crate::{
         annealer::types::{NeighborGenerator, NeighborType},
-        utils::random::Rnd,
+        utils::random::Random,
     };
 
     pub struct WeightedNeighborGenerator<N>
@@ -32,7 +32,7 @@ pub mod neighbor_generator {
     where
         N: NeighborType,
     {
-        fn generate(&self, _: f64, rnd: &mut Rnd) -> N::H {
+        fn generate(&self, _: f64, rnd: &mut impl Random) -> N::H {
             let p = rnd.nextf();
             for (n, cum_weight) in self.neighbors.iter() {
                 if p < *cum_weight {
@@ -45,7 +45,7 @@ pub mod neighbor_generator {
 }
 
 pub mod criterion {
-    use crate::{annealer::types::Criterion, utils::random::Rnd};
+    use crate::{annealer::types::Criterion, utils::random::Random};
 
     pub struct HillClimbingCriterion {
         is_maximize: bool,
@@ -58,7 +58,14 @@ pub mod criterion {
     }
 
     impl Criterion for HillClimbingCriterion {
-        fn adopt(&self, cur_score: f64, new_score: f64, _: f64, _: f64, _: &mut Rnd) -> bool {
+        fn adopt(
+            &self,
+            cur_score: f64,
+            new_score: f64,
+            _: f64,
+            _: f64,
+            _: &mut impl Random,
+        ) -> bool {
             if self.is_maximize {
                 new_score >= cur_score
             } else {
@@ -84,7 +91,7 @@ pub mod criterion {
             new_score: f64,
             cur_temp: f64,
             _: f64,
-            rnd: &mut Rnd,
+            rnd: &mut impl Random,
         ) -> bool {
             let sign = self.is_maximize as i32 * 2 - 1;
             let score_diff = sign as f64 * (new_score - cur_score);

@@ -1,4 +1,4 @@
-use crate::utils::random::Rnd;
+use crate::utils::random::Random;
 
 #[derive(Debug, Clone)]
 pub struct IndexSet {
@@ -53,7 +53,7 @@ impl IndexSet {
         self.que.get(0).copied()
     }
 
-    pub fn get_random(&self, rnd: &mut Rnd) -> Option<usize> {
+    pub fn get_random(&self, rnd: &mut impl Random) -> Option<usize> {
         self.que.get(rnd.gen_index(self.que.len())).copied()
     }
 
@@ -62,11 +62,55 @@ impl IndexSet {
     }
 }
 
+#[derive(Debug, Clone)]
+pub struct IndexMap<T> {
+    set: IndexSet,
+    vals: Vec<Option<T>>,
+}
+
+impl<T> IndexMap<T>
+where
+    T: Clone + Copy + Default,
+{
+    pub fn new(n: usize) -> Self {
+        IndexMap {
+            set: IndexSet::empty(n),
+            vals: vec![None; n],
+        }
+    }
+
+    pub fn add(&mut self, idx: usize, val: T) {
+        if !self.set.contains(idx) {
+            self.set.add(idx);
+        }
+        self.vals[idx] = Some(val);
+    }
+
+    pub fn remove(&mut self, idx: usize) {
+        if self.set.contains(idx) {
+            self.set.remove(idx);
+            self.vals[idx] = None;
+        }
+    }
+
+    pub fn get(&self, idx: usize) -> Option<T> {
+        self.vals[idx]
+    }
+
+    pub fn iter(&self) -> impl Iterator<Item = (usize, T)> + '_ {
+        self.set
+            .iter()
+            .map(move |&idx| (idx, self.vals[idx].expect("Somehow IndexMap is invalid")))
+    }
+}
+
 #[cfg(test)]
 mod tests {
+    use super::*;
+
     #[test]
     fn test_index_set() {
-        let mut s = super::IndexSet::empty(5);
+        let mut s = IndexSet::empty(5);
         assert_eq!(s.size(), 0);
         assert!(!s.contains(3));
         s.remove(3);
@@ -93,7 +137,7 @@ mod tests {
 
     #[test]
     fn test_index_set_full() {
-        let mut s = super::IndexSet::full(5);
+        let mut s = IndexSet::full(5);
         assert_eq!(s.size(), 5);
         assert!(s.contains(3));
         s.add(3);
@@ -116,5 +160,27 @@ mod tests {
         s.add(1);
         assert_eq!(s.size(), 5);
         assert!(s.contains(1));
+    }
+
+    #[test]
+    fn test_index_map() {
+        let mut m = IndexMap::new(5);
+        assert_eq!(m.get(2), None);
+        m.add(2, 10);
+        assert_eq!(m.get(2), Some(10));
+        m.add(2, 20);
+        assert_eq!(m.get(2), Some(20));
+        m.add(3, 30);
+        assert_eq!(m.get(3), Some(30));
+        m.remove(2);
+        assert_eq!(m.get(2), None);
+        m.remove(2);
+        assert_eq!(m.get(2), None);
+        m.add(2, 40);
+        assert_eq!(m.get(2), Some(40));
+
+        let mut v = m.iter().collect::<Vec<(usize, usize)>>();
+        v.sort_by_key(|&(k, _)| k);
+        assert_eq!(v, vec![(2, 40), (3, 30)]);
     }
 }

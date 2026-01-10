@@ -5,7 +5,7 @@ use crate::annealer::types::{
     Callback, Criterion, NeighborGenerator, NeighborHandler, NeighborType, ProgressScheduler,
     State, TemperatureScheduler,
 };
-use crate::utils::random::Rnd;
+use crate::utils::random::Random;
 
 #[derive(PartialEq, Eq, Clone, Copy, Debug)]
 pub enum AnnealerMode {
@@ -18,51 +18,54 @@ pub struct AnnealerConfig {
 }
 
 #[allow(clippy::type_complexity)]
-pub struct Annealer<G, N, C, T, P>
+pub struct Annealer<G, N, C, T, P, R>
 where
     G: NeighborGenerator<N>,
     N: NeighborType,
     C: Criterion,
     T: TemperatureScheduler,
     P: ProgressScheduler,
+    R: Random,
 {
     pub state: <N::H as NeighborHandler>::State,
     pub env: <N::H as NeighborHandler>::Env,
     pub logger: AnnealingLogger,
     mutator: Mutator<G, N>,
-    scheduler: AnnealerScheduler<C, T, P>,
-    rnd: Rnd,
+    scheduler: AnnealerScheduler<C, T, P, R>,
+    rnd: R,
     callbacks:
         Vec<Box<dyn Callback<<N::H as NeighborHandler>::State, <N::H as NeighborHandler>::Env>>>,
     config: AnnealerConfig,
 }
 
-impl<G, N, C, T, P> Annealer<G, N, C, T, P>
+impl<G, N, C, T, P, R> Annealer<G, N, C, T, P, R>
 where
     G: NeighborGenerator<N>,
     N: NeighborType,
     C: Criterion,
     T: TemperatureScheduler,
     P: ProgressScheduler,
+    R: Random,
 {
     #[allow(clippy::type_complexity)]
     pub fn new(
         state: <N::H as NeighborHandler>::State,
         env: <N::H as NeighborHandler>::Env,
         mutator: Mutator<G, N>,
-        scheduler: AnnealerScheduler<C, T, P>,
+        scheduler: AnnealerScheduler<C, T, P, R>,
         callbacks: Vec<
             Box<dyn Callback<<N::H as NeighborHandler>::State, <N::H as NeighborHandler>::Env>>,
         >,
         config: AnnealerConfig,
-    ) -> Annealer<G, N, C, T, P> {
+        rnd: R,
+    ) -> Annealer<G, N, C, T, P, R> {
         Annealer {
             state,
             env,
             logger: AnnealingLogger::new(),
             mutator,
             scheduler,
-            rnd: Rnd::new(24),
+            rnd,
             callbacks,
             config,
         }
@@ -158,7 +161,7 @@ where
         state: &mut <N::H as NeighborHandler>::State,
         env: &<N::H as NeighborHandler>::Env,
         progress: f64,
-        rnd: &mut Rnd,
+        rnd: &mut impl Random,
     ) -> (bool, &'static str) {
         let mut n = self.generator.generate(progress, rnd);
         let successed = n.apply(state, env, rnd);
@@ -174,7 +177,7 @@ where
         &mut self,
         state: &mut <N::H as NeighborHandler>::State,
         env: &<N::H as NeighborHandler>::Env,
-        rnd: &mut Rnd,
+        rnd: &mut impl Random,
     ) {
         let mut last_neighbor = self
             .last_neighbor

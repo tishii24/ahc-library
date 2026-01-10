@@ -6,7 +6,7 @@ use crate::{
         },
         types::{Criterion, ProgressScheduler, TemperatureScheduler},
     },
-    utils::random::Rnd,
+    utils::random::Random,
 };
 
 const NUM_PHASE: usize = 3;
@@ -36,32 +36,34 @@ enum AnnealerSchedulerStatus {
 ///     }
 /// }
 /// ```
-pub struct AnnealerScheduler<C, T, P>
+pub struct AnnealerScheduler<C, T, P, R>
 where
     C: Criterion,
     T: TemperatureScheduler,
     P: ProgressScheduler,
+    R: Random,
 {
     status: AnnealerSchedulerStatus,
     criterion: C,
     temperature_scheduler: T,
     progress_scheduler: P,
-    rnd: Rnd,
+    rnd: R,
 }
 
-impl<C, T, P> AnnealerScheduler<C, T, P>
+impl<C, T, P, R> AnnealerScheduler<C, T, P, R>
 where
     C: Criterion,
     T: TemperatureScheduler,
     P: ProgressScheduler,
+    R: Random,
 {
-    pub fn new(criterion: C, temperature_scheduler: T, progress_scheduler: P) -> Self {
+    pub fn new(criterion: C, temperature_scheduler: T, progress_scheduler: P, rnd: R) -> Self {
         AnnealerScheduler {
             status: AnnealerSchedulerStatus::NotStarted,
             criterion,
             temperature_scheduler,
             progress_scheduler,
-            rnd: Rnd::new(24),
+            rnd,
         }
     }
 
@@ -101,56 +103,66 @@ where
     }
 }
 
-impl AnnealerScheduler<AnnealingCriterion, ExpTemperatureScheduler, SecondProgressScheduler> {
+impl<R: Random>
+    AnnealerScheduler<AnnealingCriterion, ExpTemperatureScheduler, SecondProgressScheduler, R>
+{
     pub fn with_seconds(
         start_temp: f64,
         end_temp: f64,
         seconds: f64,
         is_maximize: bool,
-    ) -> AnnealerScheduler<AnnealingCriterion, ExpTemperatureScheduler, SecondProgressScheduler>
+        rnd: R,
+    ) -> AnnealerScheduler<AnnealingCriterion, ExpTemperatureScheduler, SecondProgressScheduler, R>
     {
         AnnealerScheduler::new(
             AnnealingCriterion::new(is_maximize),
             ExpTemperatureScheduler::new(start_temp, end_temp),
             SecondProgressScheduler::new(seconds),
+            rnd,
         )
     }
 }
 
-impl AnnealerScheduler<AnnealingCriterion, ExpTemperatureScheduler, IterationProgressScheduler> {
+impl<R: Random>
+    AnnealerScheduler<AnnealingCriterion, ExpTemperatureScheduler, IterationProgressScheduler, R>
+{
     pub fn with_iterations(
         start_temp: f64,
         end_temp: f64,
         iteration: usize,
         is_maximize: bool,
-    ) -> AnnealerScheduler<AnnealingCriterion, ExpTemperatureScheduler, IterationProgressScheduler>
+        rnd: R,
+    ) -> AnnealerScheduler<AnnealingCriterion, ExpTemperatureScheduler, IterationProgressScheduler, R>
     {
         AnnealerScheduler::new(
             AnnealingCriterion::new(is_maximize),
             ExpTemperatureScheduler::new(start_temp, end_temp),
             IterationProgressScheduler::new(iteration),
+            rnd,
         )
     }
 }
 
-pub struct AnnealerSchedulerWithStatistics<C, T, P>
+pub struct AnnealerSchedulerWithStatistics<C, T, P, R>
 where
     C: Criterion,
     T: TemperatureScheduler,
     P: ProgressScheduler,
+    R: Random,
 {
-    inner: AnnealerScheduler<C, T, P>,
+    inner: AnnealerScheduler<C, T, P, R>,
     iteration: Vec<[usize; NUM_PHASE]>,
     adopted: Vec<[usize; NUM_PHASE]>,
 }
 
-impl<C, T, P> AnnealerSchedulerWithStatistics<C, T, P>
+impl<C, T, P, R> AnnealerSchedulerWithStatistics<C, T, P, R>
 where
     C: Criterion,
     T: TemperatureScheduler,
     P: ProgressScheduler,
+    R: Random,
 {
-    pub fn new(inner: AnnealerScheduler<C, T, P>, n_types: usize) -> Self {
+    pub fn new(inner: AnnealerScheduler<C, T, P, R>, n_types: usize) -> Self {
         assert!(n_types > 0, "n_types must be > 0");
         Self {
             inner,
@@ -332,11 +344,12 @@ where
     }
 }
 
-impl
+impl<R: Random>
     AnnealerSchedulerWithStatistics<
         AnnealingCriterion,
         ExpTemperatureScheduler,
         SecondProgressScheduler,
+        R,
     >
 {
     pub fn with_seconds(
@@ -345,17 +358,20 @@ impl
         seconds: f64,
         is_maximize: bool,
         n_types: usize,
+        rnd: R,
     ) -> Self {
-        let inner = AnnealerScheduler::with_seconds(start_temp, end_temp, seconds, is_maximize);
+        let inner =
+            AnnealerScheduler::with_seconds(start_temp, end_temp, seconds, is_maximize, rnd);
         Self::new(inner, n_types)
     }
 }
 
-impl
+impl<R: Random>
     AnnealerSchedulerWithStatistics<
         AnnealingCriterion,
         ExpTemperatureScheduler,
         IterationProgressScheduler,
+        R,
     >
 {
     pub fn with_iterations(
@@ -364,21 +380,26 @@ impl
         iteration: usize,
         is_maximize: bool,
         n_types: usize,
+        rnd: R,
     ) -> Self {
         let inner =
-            AnnealerScheduler::with_iterations(start_temp, end_temp, iteration, is_maximize);
+            AnnealerScheduler::with_iterations(start_temp, end_temp, iteration, is_maximize, rnd);
         Self::new(inner, n_types)
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::annealer::prelude::AnnealerScheduler;
+    use crate::{
+        annealer::prelude::AnnealerScheduler,
+        utils::random::{Random, XorShift32},
+    };
 
     #[test]
     fn test_annealer_scheduler_with_iterations() {
         const ITERATIONS: usize = 100;
-        let mut scheduler = AnnealerScheduler::with_iterations(1e0, 1e-4, ITERATIONS, true);
+        let mut scheduler =
+            AnnealerScheduler::with_iterations(1e0, 1e-4, ITERATIONS, true, XorShift32::new(24));
         let mut iterations = 0;
         while scheduler.to_next_iter() {
             iterations += 1;
@@ -390,7 +411,8 @@ mod tests {
     #[test]
     fn test_annealer_scheduler_with_seconds() {
         const SECONDS: f64 = 0.3;
-        let mut scheduler = AnnealerScheduler::with_seconds(1e0, 1e-4, SECONDS, true);
+        let mut scheduler =
+            AnnealerScheduler::with_seconds(1e0, 1e-4, SECONDS, true, XorShift32::new(24));
         let start = std::time::Instant::now();
         let mut iterations = 0;
         while scheduler.to_next_iter() {
@@ -407,7 +429,12 @@ mod tests {
         const N_TYPES: usize = 3;
         let mut scheduler =
             crate::annealer::scheduler::AnnealerSchedulerWithStatistics::with_iterations(
-                1e0, 1e-4, ITERATIONS, true, N_TYPES,
+                1e0,
+                1e-4,
+                ITERATIONS,
+                true,
+                N_TYPES,
+                XorShift32::new(24),
             );
         let mut total_iterations = 0;
         while scheduler.to_next_iter() {

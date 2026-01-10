@@ -1,6 +1,6 @@
 use std::collections::VecDeque;
 
-use crate::utils::{array2d::Array2d, fast_clear_array::FastClearArray2d, random::Rnd, v2::V2};
+use crate::utils::{array2d::Array2d, fast_clear_array::FastClearArray2d, random::Random, v2::V2};
 
 pub trait PathFindState {
     fn trans(&self, u: &V2<usize>, path: &[V2<usize>]) -> Self;
@@ -15,18 +15,18 @@ impl PathFindState for DummyPathFindState {
     }
 }
 
-pub struct BfsGridPathFinder {
+pub struct BfsGridPathFinder<R: Random> {
     h: usize,
     w: usize,
     q: VecDeque<V2<usize>>,
     dist: FastClearArray2d<i32>,
     prev: FastClearArray2d<Option<V2<usize>>>,
     seen: Vec<V2<usize>>,
-    rnd: Rnd,
+    rnd: R,
 }
 
-impl BfsGridPathFinder {
-    pub fn new(h: usize, w: usize, seed: u32) -> Self {
+impl<R: Random> BfsGridPathFinder<R> {
+    pub fn new(h: usize, w: usize, rnd: R) -> Self {
         Self {
             h,
             w,
@@ -34,7 +34,7 @@ impl BfsGridPathFinder {
             dist: FastClearArray2d::new(h, w, i32::MAX),
             prev: FastClearArray2d::new(h, w, None),
             seen: Vec::with_capacity(h * w),
-            rnd: Rnd::new(seed),
+            rnd,
         }
     }
 
@@ -46,7 +46,7 @@ impl BfsGridPathFinder {
     ) -> Vec<V2<usize>>
     where
         T: Fn(&V2<usize>, &V2<usize>) -> bool,
-        D: Fn(usize, &V2<usize>, &mut Rnd) -> V2<usize>,
+        D: Fn(usize, &V2<usize>, &mut R) -> V2<usize>,
     {
         self._bfs(start, |_| false, trans_cond, priority_d);
         self.seen.clone()
@@ -60,7 +60,7 @@ impl BfsGridPathFinder {
     ) -> usize
     where
         T: Fn(&V2<usize>, &V2<usize>) -> bool,
-        D: Fn(usize, &V2<usize>, &mut Rnd) -> V2<usize>,
+        D: Fn(usize, &V2<usize>, &mut R) -> V2<usize>,
     {
         self._bfs(start, |_| false, trans_cond, priority_d);
         self.seen.len()
@@ -77,7 +77,7 @@ impl BfsGridPathFinder {
     where
         C: Fn(&V2<usize>) -> bool,
         T: Fn(&V2<usize>, &V2<usize>) -> bool,
-        D: Fn(usize, &V2<usize>, &mut Rnd) -> V2<usize>,
+        D: Fn(usize, &V2<usize>, &mut R) -> V2<usize>,
     {
         let v = self._bfs(start, complete_cond, trans_cond, priority_d)?;
         Some(self.restore_path(start, &v))
@@ -93,7 +93,7 @@ impl BfsGridPathFinder {
     where
         C: Fn(&V2<usize>) -> bool,
         T: Fn(&V2<usize>, &V2<usize>) -> bool,
-        D: Fn(usize, &V2<usize>, &mut Rnd) -> V2<usize>,
+        D: Fn(usize, &V2<usize>, &mut R) -> V2<usize>,
     {
         self.reset();
 
@@ -161,12 +161,16 @@ impl BfsGridPathFinder {
 
 #[cfg(test)]
 mod tests {
-    use crate::utils::{path_finder::BfsGridPathFinder, v2::*};
+    use crate::utils::{
+        path_finder::BfsGridPathFinder,
+        random::{Random, XorShift32},
+        v2::*,
+    };
 
     #[test]
     fn test_bfs() {
         let (h, w) = (5, 8);
-        let mut path_finder = BfsGridPathFinder::new(h, w, 0);
+        let mut path_finder = BfsGridPathFinder::new(h, w, XorShift32::new(24));
         let size = path_finder.get_reachable_size(&V2::new(0, 0), |_, _| true, |i, _, _| D4[i]);
         assert_eq!(size, h * w);
     }
@@ -174,7 +178,7 @@ mod tests {
     #[test]
     fn test_bfs_with_wall() {
         let n = 5;
-        let mut path_finder = BfsGridPathFinder::new(n, n, 0);
+        let mut path_finder = BfsGridPathFinder::new(n, n, XorShift32::new(24));
         let size = path_finder.get_reachable_size(&V2::new(0, 0), |u, _| u.y != 2, |i, _, _| D4[i]);
         assert_eq!(size, n * 2);
     }
@@ -182,7 +186,7 @@ mod tests {
     #[test]
     fn test_find_path() {
         let n = 5;
-        let mut path_finder = BfsGridPathFinder::new(n, n, 0);
+        let mut path_finder = BfsGridPathFinder::new(n, n, XorShift32::new(24));
         let d = [D_DOWN, D_UP, D_RIGHT, D_LEFT];
         let t = V2::new(n - 1, n - 1);
         let path = path_finder.find_path(&V2::new(0, 0), |c| c == &t, |_, _| true, |i, _, _| d[i]);

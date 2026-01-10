@@ -1,4 +1,4 @@
-use crate::utils::random::Rnd;
+use crate::utils::random::Random;
 
 pub trait State<E>: Clone
 where
@@ -16,8 +16,8 @@ pub trait NeighborHandler {
 
     fn setup() -> Self;
     fn tag(&self) -> &'static str;
-    fn apply(&mut self, state: &mut Self::State, env: &Self::Env, rnd: &mut Rnd) -> bool;
-    fn revert(&mut self, state: &mut Self::State, env: &Self::Env, rnd: &mut Rnd);
+    fn apply<R: Random>(&mut self, state: &mut Self::State, env: &Self::Env, rnd: &mut R) -> bool;
+    fn revert<R: Random>(&mut self, state: &mut Self::State, env: &Self::Env, rnd: &mut R);
 }
 
 pub trait NeighborType {
@@ -29,7 +29,7 @@ pub trait NeighborGenerator<N>
 where
     N: NeighborType,
 {
-    fn generate(&self, progress: f64, rnd: &mut Rnd) -> N::H;
+    fn generate(&self, progress: f64, rnd: &mut impl Random) -> N::H;
 }
 
 pub trait Criterion {
@@ -39,7 +39,7 @@ pub trait Criterion {
         new_score: f64,
         cur_temp: f64,
         progress: f64,
-        rnd: &mut Rnd,
+        rnd: &mut impl Random,
     ) -> bool;
 }
 
@@ -85,13 +85,13 @@ macro_rules! neighbor_impl {
                 }
             }
 
-            fn apply(&mut self, state: &mut $state_type, env: &$env_type, rnd: &mut Rnd) -> bool {
+            fn apply<R: Random>(&mut self, state: &mut $state_type, env: &$env_type, rnd: &mut R) -> bool {
                 match self {
                     $(Self::$variant(inner) => inner.apply(state, env, rnd),)+
                 }
             }
 
-            fn revert(&mut self, state: &mut $state_type, env: &$env_type, rnd: &mut Rnd) {
+            fn revert<R: Random>(&mut self, state: &mut $state_type, env: &$env_type, rnd: &mut R) {
                 match self {
                     $(Self::$variant(inner) => inner.revert(state, env, rnd),)+
                 }

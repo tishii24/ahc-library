@@ -2,7 +2,7 @@
 mod test_single_variable {
     use crate::annealer::prelude::*;
     use crate::annealer::types::NeighborHandler;
-    use crate::utils::random::Rnd;
+    use crate::utils::random::{Random, XorShift32};
 
     #[derive(Clone)]
     struct StateImpl {
@@ -33,12 +33,12 @@ mod test_single_variable {
             NeighborA { a: 1. }
         }
 
-        fn apply(&mut self, state: &mut StateImpl, _: &EnvImpl, _: &mut Rnd) -> bool {
+        fn apply<R: Random>(&mut self, state: &mut StateImpl, _: &EnvImpl, _: &mut R) -> bool {
             state.c += self.a;
             true
         }
 
-        fn revert(&mut self, state: &mut StateImpl, _: &EnvImpl, _: &mut Rnd) {
+        fn revert<R: Random>(&mut self, state: &mut StateImpl, _: &EnvImpl, _: &mut R) {
             state.c -= self.a;
         }
 
@@ -59,12 +59,12 @@ mod test_single_variable {
             NeighborB { b: 1. }
         }
 
-        fn apply(&mut self, state: &mut StateImpl, _: &EnvImpl, _: &mut Rnd) -> bool {
+        fn apply<R: Random>(&mut self, state: &mut StateImpl, _: &EnvImpl, _: &mut R) -> bool {
             state.c += self.b;
             true
         }
 
-        fn revert(&mut self, state: &mut StateImpl, _: &EnvImpl, _: &mut Rnd) {
+        fn revert<R: Random>(&mut self, state: &mut StateImpl, _: &EnvImpl, _: &mut R) {
             state.c -= self.b;
         }
 
@@ -92,11 +92,13 @@ mod test_single_variable {
                 HillClimbingCriterion::new(false),
                 ExpTemperatureScheduler::new(1e0, 1e-4),
                 IterationProgressScheduler::new(1_000),
+                XorShift32::new(42),
             ),
             vec![],
             AnnealerConfig {
                 mode: AnnealerMode::Release,
             },
+            XorShift32::new(42),
         );
         annealer.run();
 
@@ -110,7 +112,7 @@ mod test_single_variable {
 mod test_knapsack {
     use crate::annealer::prelude::*;
     use crate::annealer::types::NeighborHandler;
-    use crate::utils::random::Rnd;
+    use crate::utils::random::{Random, XorShift32};
 
     #[derive(Clone)]
     struct StateImpl {
@@ -147,7 +149,7 @@ mod test_knapsack {
             ToggleOne { i: None }
         }
 
-        fn apply(&mut self, state: &mut StateImpl, env: &EnvImpl, rnd: &mut Rnd) -> bool {
+        fn apply<R: Random>(&mut self, state: &mut StateImpl, env: &EnvImpl, rnd: &mut R) -> bool {
             self.i = Some(rnd.gen_index(env.items.len()));
             let i = self.i.unwrap();
             if state.used[i] {
@@ -161,7 +163,7 @@ mod test_knapsack {
             true
         }
 
-        fn revert(&mut self, state: &mut StateImpl, env: &EnvImpl, _: &mut Rnd) {
+        fn revert<R: Random>(&mut self, state: &mut StateImpl, env: &EnvImpl, rnd: &mut R) {
             let i = self.i.unwrap();
             if state.used[i] {
                 state.weight_sum -= env.items[i].0;
@@ -201,11 +203,13 @@ mod test_knapsack {
                 AnnealingCriterion::new(true),
                 ExpTemperatureScheduler::new(1e0, 1e-4),
                 SecondProgressScheduler::new(0.1),
+                XorShift32::new(42),
             ),
             vec![],
             AnnealerConfig {
                 mode: AnnealerMode::Release,
             },
+            XorShift32::new(42),
         );
         annealer.run();
 

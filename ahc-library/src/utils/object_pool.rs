@@ -1,4 +1,4 @@
-use crate::utils::{index_set::IndexSet, random::Rnd};
+use crate::utils::{index_set::IndexSet, random::Random};
 
 #[derive(Clone, Debug)]
 pub struct ObjectPool<T: Clone> {
@@ -56,7 +56,7 @@ impl<T: Clone> ObjectPool<T> {
         self.is_active.iter()
     }
 
-    pub fn get_random_active_index(&self, rnd: &mut Rnd) -> Option<usize> {
+    pub fn get_random_active_index(&self, rnd: &mut impl Random) -> Option<usize> {
         self.is_active.get_random(rnd)
     }
 }
