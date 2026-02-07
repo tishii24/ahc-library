@@ -1,5 +1,7 @@
 use crate::utils::random::Random;
 
+const NONE_POS: usize = !0;
+
 #[derive(Debug, Clone)]
 pub struct IndexSet {
     pub que: Vec<usize>,
@@ -10,7 +12,7 @@ impl IndexSet {
     pub fn empty(n: usize) -> Self {
         IndexSet {
             que: Vec::with_capacity(n),
-            pos: vec![!0; n],
+            pos: vec![NONE_POS; n],
         }
     }
 
@@ -19,6 +21,13 @@ impl IndexSet {
             que: (0..n).collect(),
             pos: (0..n).collect(),
         }
+    }
+
+    pub fn clear(&mut self) {
+        for &v in &self.que {
+            self.pos[v] = NONE_POS;
+        }
+        self.que.clear();
     }
 
     pub fn add(&mut self, v: usize) {
@@ -38,11 +47,11 @@ impl IndexSet {
         let b = self.que[self.que.len() - 1];
         self.que.swap_remove(p);
         self.pos[b] = p;
-        self.pos[v] = !0;
+        self.pos[v] = NONE_POS;
     }
 
     pub fn contains(&self, v: usize) -> bool {
-        self.pos[v] != !0
+        self.pos[v] != NONE_POS
     }
 
     pub fn size(&self) -> usize {
@@ -182,5 +191,23 @@ mod tests {
         let mut v = m.iter().collect::<Vec<(usize, usize)>>();
         v.sort_by_key(|&(k, _)| k);
         assert_eq!(v, vec![(2, 40), (3, 30)]);
+    }
+
+    #[test]
+    fn test_index_set_clear() {
+        let mut s = IndexSet::empty(5);
+        s.add(1);
+        s.add(3);
+        assert_eq!(s.size(), 2);
+        s.clear();
+        assert_eq!(s.size(), 0);
+        assert!(!s.contains(1));
+        assert!(!s.contains(3));
+        s.add(2);
+        assert_eq!(s.size(), 1);
+        assert!(s.contains(2));
+        s.add(1);
+        assert_eq!(s.size(), 2);
+        assert!(s.contains(1));
     }
 }

@@ -1,7 +1,6 @@
 use rand_pcg::rand_core::{RngCore, SeedableRng};
 
 pub trait Random {
-    fn new(seed: u32) -> Self;
     fn _next(&mut self) -> u32;
 
     #[inline(always)]
@@ -49,14 +48,14 @@ pub struct XorShift32 {
     state: u32,
 }
 
-impl Random for XorShift32 {
-    fn new(mut seed: u32) -> Self {
-        if seed == 0 {
-            seed = u32::MAX;
-        }
+impl XorShift32 {
+    pub fn new(seed: u32) -> Self {
+        assert_ne!(seed, 0);
         Self { state: seed }
     }
+}
 
+impl Random for XorShift32 {
     #[inline(always)]
     fn _next(&mut self) -> u32 {
         let mut x = self.state;
@@ -73,16 +72,48 @@ pub struct RandPcg64Mcg {
     inner: rand_pcg::Pcg64Mcg,
 }
 
-impl Random for RandPcg64Mcg {
-    fn new(seed: u32) -> Self {
+impl RandPcg64Mcg {
+    pub fn new(seed: u64) -> Self {
         Self {
-            inner: rand_pcg::Pcg64Mcg::seed_from_u64(seed as u64),
+            inner: rand_pcg::Pcg64Mcg::seed_from_u64(seed),
         }
     }
+}
 
+impl Random for RandPcg64Mcg {
     #[inline(always)]
     fn _next(&mut self) -> u32 {
         self.inner.next_u32()
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct BufferedRandom {
+    buf: Vec<u32>,
+    pos: usize,
+}
+
+impl BufferedRandom {
+    pub fn new<R: Random>(rnd: &mut R, buf_size: usize) -> Self {
+        assert!(0 < buf_size);
+        assert!(buf_size < 1_000_000);
+        let mut buf = Vec::with_capacity(buf_size);
+        for _ in 0..buf_size {
+            buf.push(rnd._next());
+        }
+        Self { buf, pos: 0 }
+    }
+}
+
+impl Random for BufferedRandom {
+    #[inline(always)]
+    fn _next(&mut self) -> u32 {
+        let v = self.buf[self.pos];
+        self.pos += 1;
+        if self.pos == self.buf.len() {
+            self.pos = 0;
+        }
+        v
     }
 }
 
@@ -96,7 +127,7 @@ pub struct DiscreteSampler<T, R> {
 }
 
 impl<T: Copy, R: Random> DiscreteSampler<T, R> {
-    pub fn new(weight_values: &Vec<(usize, T)>) -> Self {
+    pub fn new(weight_values: &Vec<(usize, T)>, rnd: R) -> Self {
         let weight_sum = weight_values.iter().map(|(w, _)| *w).sum::<usize>();
         assert!(0 < weight_sum);
         assert!(weight_sum < 1_000_000);
@@ -104,10 +135,7 @@ impl<T: Copy, R: Random> DiscreteSampler<T, R> {
         for &(w, val) in weight_values.iter() {
             buf.extend(std::iter::repeat(val).take(w));
         }
-        Self {
-            buf,
-            rnd: R::new(24),
-        }
+        Self { buf, rnd }
     }
 }
 
@@ -123,7 +151,7 @@ pub struct ContinousSampler<R: Random> {
 }
 
 impl<R: Random> ContinousSampler<R> {
-    pub fn new<F>(f: F, x_min: f64, x_max: f64, size: usize) -> Self
+    pub fn new<F>(f: F, x_min: f64, x_max: f64, size: usize, rnd: R) -> Self
     where
         F: Fn(f64) -> f64,
     {
@@ -135,10 +163,7 @@ impl<R: Random> ContinousSampler<R> {
             let x = x_min + step * (i as f64);
             buf.push(f(x));
         }
-        Self {
-            buf,
-            rnd: R::new(24),
-        }
+        Self { buf, rnd }
     }
 }
 
@@ -155,7 +180,8 @@ mod tests {
     #[test]
     fn test_dicrete_sampler() {
         let weight_values = vec![(1, 'a'), (3, 'b'), (6, 'c')];
-        let mut sampler = DiscreteSampler::<_, XorShift32>::new(&weight_values);
+        let mut sampler =
+            DiscreteSampler::<_, XorShift32>::new(&weight_values, XorShift32::new(42));
         let mut counts = std::collections::HashMap::new();
         for _ in 0..10000 {
             let v = sampler.sample();
@@ -168,7 +194,7 @@ mod tests {
     #[test]
     fn test_continous_sampler() {
         let f = |x: f64| x * x;
-        let mut sampler = ContinousSampler::<XorShift32>::new(f, 0., 1., 100);
+        let mut sampler = ContinousSampler::<XorShift32>::new(f, 0., 1., 100, XorShift32::new(42));
         let mut sum = 0.;
         for _ in 0..10000 {
             let v = sampler.sample();
@@ -186,5 +212,17 @@ mod tests {
             cnt[rnd.gen_index(100)] += 1;
         }
         assert!(cnt.iter().all(|&c| 50 < c && c < 150));
+    }
+
+    #[test]
+    fn test_buffer_random() {
+        let mut base_rnd = RandPcg64Mcg::new(42);
+        let mut rnd = BufferedRandom::new(&mut base_rnd, 100);
+        let r0 = rnd.gen_index(100);
+        for _ in 0..99 {
+            let _ = rnd.gen_index(100);
+        }
+        let r1 = rnd.gen_index(100);
+        assert_eq!(r0, r1);
     }
 }

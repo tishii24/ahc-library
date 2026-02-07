@@ -390,10 +390,7 @@ impl<R: Random>
 
 #[cfg(test)]
 mod tests {
-    use crate::{
-        annealer::prelude::AnnealerScheduler,
-        utils::random::{Random, XorShift32},
-    };
+    use crate::{annealer::prelude::AnnealerScheduler, utils::random::XorShift32};
 
     #[test]
     fn test_annealer_scheduler_with_iterations() {

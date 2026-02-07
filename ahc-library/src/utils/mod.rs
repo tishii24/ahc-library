@@ -5,6 +5,7 @@ pub mod object_pool;
 pub mod param;
 pub mod path_finder;
 pub mod random;
+pub mod stopwatch;
 pub mod time;
 pub mod topklist;
 pub mod v2;

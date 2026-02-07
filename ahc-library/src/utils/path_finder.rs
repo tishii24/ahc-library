@@ -161,11 +161,7 @@ impl<R: Random> BfsGridPathFinder<R> {
 
 #[cfg(test)]
 mod tests {
-    use crate::utils::{
-        path_finder::BfsGridPathFinder,
-        random::{Random, XorShift32},
-        v2::*,
-    };
+    use crate::utils::{path_finder::BfsGridPathFinder, random::XorShift32, v2::*};
 
     #[test]
     fn test_bfs() {
