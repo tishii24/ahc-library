@@ -1,10 +1,3 @@
-pub const D_DOWN: V2<usize> = V2 { x: 1, y: 0 };
-pub const D_UP: V2<usize> = V2 { x: !0, y: 0 };
-pub const D_LEFT: V2<usize> = V2 { x: 0, y: !0 };
-pub const D_RIGHT: V2<usize> = V2 { x: 0, y: 1 };
-
-pub const D4: [V2<usize>; 4] = [D_UP, D_DOWN, D_LEFT, D_RIGHT];
-
 /// 2D Vector that supports basic arithmetic operations.
 /// # Examples
 /// ```
@@ -26,10 +19,10 @@ macro_rules! define_vec2 {
         $f1:ident,
         $f2:ident
     ) => {
-        #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
+        #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
         pub struct $name<T>
         where
-            T: num_traits::Num,
+            T: num_traits::Num
         {
             pub $f1: T,
             pub $f2: T,
@@ -115,6 +108,15 @@ macro_rules! define_vec2 {
             }
         }
 
+        impl<T> std::fmt::Debug for $name<T>
+        where
+            T: num_traits::Num + std::fmt::Display,
+        {
+            fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                write!(f, "({}, {})", self.$f1, self.$f2)
+            }
+        }
+
         impl<T> num_traits::Zero for $name<T>
         where
             T: num_traits::Num,
@@ -145,26 +147,46 @@ macro_rules! define_vec2 {
 define_vec2!(V2, x, y);
 define_vec2!(Coor, i, j);
 
-#[test]
-fn test_a() {
-    let v1 = V2::new(1, 2);
-    let v2 = V2::new(3, 4);
-    let v3 = v1 + v2;
-    assert_eq!(v3.x, 4);
-    assert_eq!(v3.y, 6);
+/// Coor utilities
+pub const D_DOWN: Coor<usize> = Coor { i: 1, j: 0 };
+pub const D_UP: Coor<usize> = Coor { i: !0, j: 0 };
+pub const D_LEFT: Coor<usize> = Coor { i: 0, j: !0 };
+pub const D_RIGHT: Coor<usize> = Coor { i: 0, j: 1 };
+pub const D4: [Coor<usize>; 4] = [D_UP, D_DOWN, D_LEFT, D_RIGHT];
 
-    let mut v4 = V2::new(5, 6);
-    v4 += 10;
-    assert_eq!(v4.x, 15);
-    assert_eq!(v4.y, 16);
-}
+#[cfg(test)]
+mod tests {
+    use super::*;
 
-#[test]
-fn test_macro() {
-    define_vec2!(TestV2, i, j);
-    let c1 = TestV2::new(2_usize, 3_usize);
-    let c2 = TestV2::new(4_usize, 5_usize);
-    let c3 = c1 + c2;
-    assert_eq!(c3.i, 6);
-    assert_eq!(c3.j, 8);
+    #[test]
+    fn test_a() {
+        let v1 = V2::new(1, 2);
+        let v2 = V2::new(3, 4);
+        let v3 = v1 + v2;
+        assert_eq!(v3.x, 4);
+        assert_eq!(v3.y, 6);
+
+        let mut v4 = V2::new(5, 6);
+        v4 += 10;
+        assert_eq!(v4.x, 15);
+        assert_eq!(v4.y, 16);
+    }
+
+    #[test]
+    fn test_macro() {
+        define_vec2!(TestV2, i, j);
+        let c1 = TestV2::new(2_usize, 3_usize);
+        let c2 = TestV2::new(4_usize, 5_usize);
+        let c3 = c1 + c2;
+        assert_eq!(c3.i, 6);
+        assert_eq!(c3.j, 8);
+    }
+
+    #[test]
+    fn test_coor() {
+        let c1 = Coor::new(2_usize, 3_usize);
+        let c2 = c1 * 2;
+        assert_eq!(c2.i, 4);
+        assert_eq!(c2.j, 6);
+    }
 }

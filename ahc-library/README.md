@@ -44,10 +44,8 @@ uv run $PATH_AHC_LIBRARY/scripts/expander/expander.py --ahc_library_path=$PATH_A
 - 時間の取得間隔を設定
 - 温度自動調整
 
-- beamsearch.rs
 - pqueue.rs
     - https://github.com/tidwall/pqueue/blob/master/src/lib.rs
 
 - パラメータ調整をNNでやってくれるやつ
-- stopwatch
 

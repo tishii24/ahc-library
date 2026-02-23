@@ -58,7 +58,7 @@ impl IndexSet {
         self.que.len()
     }
 
-    pub fn get_first(&self) -> Option<usize> {
+    pub fn first(&self) -> Option<usize> {
         self.que.get(0).copied()
     }
 

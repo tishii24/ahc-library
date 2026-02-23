@@ -1,4 +1,4 @@
-/// https://github.com/terry-u16/cp-lib-rs/blob/master/src/diagnostics.rs から拝借
+/// https://github.com/terry-u16/cp-lib-rs/blob/master/src/diagnostics.rs より拝借
 use itertools::Itertools;
 use rustc_hash::FxHashMap;
 use std::{
@@ -113,11 +113,11 @@ impl Drop for Perf {
             eprintln!("[{name}] Performance measures");
         }
 
-        for (name, measure) in self
-            .measures
-            .iter()
-            .sorted_unstable_by(|(a, _), (b, _)| a.as_ref().cmp(b.as_ref()))
-        {
+        for (name, measure) in self.measures.iter().sorted_unstable_by(|(_, ma), (_, mb)| {
+            mb.sum
+                .partial_cmp(&ma.sum)
+                .unwrap_or(std::cmp::Ordering::Equal)
+        }) {
             eprintln!("{name}: {measure}");
         }
     }
