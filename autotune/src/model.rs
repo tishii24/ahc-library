@@ -78,12 +78,6 @@ pub enum InputParameterConfig {
         parser: ParserConfig,
         partitions: Vec<f64>,
     },
-    Categorical {
-        name: String,
-        rust_type: String,
-        parser: ParserConfig,
-        categories: Vec<String>,
-    },
 }
 
 #[derive(Deserialize, Debug, Clone)]

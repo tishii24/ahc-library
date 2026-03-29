@@ -19,7 +19,7 @@ generate-impl = "ahc_utils.generate_impl:main"
 pahcer-optuna = "ahc_utils.pahcer_optuna:main"
 expander = "ahc_utils.expander:main"
 autotune = "ahc_utils.autotune:main"
-list = "ahc_utils.list:main"
+plist = "ahc_utils.plist:main"
 
 [tool.uv]
 package = true

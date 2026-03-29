@@ -1,3 +1,39 @@
+/// `Params` 構造体と、その読み込み処理を定義するマクロ
+///
+/// このマクロは、以下の2つの形式に対応しています
+///
+/// # 1. 環境変数ベースのパラメータ定義
+///
+/// 各パラメータにデフォルト値を与えつつ、同名の環境変数で上書きできるようにしたい場合に使います
+///
+/// ```ignore
+/// params_impl! {
+///     START_TEMP: f64 = 1000.0,
+///     END_TEMP: f64 = 1.0,
+/// }
+///
+/// let params = Params::load();
+/// assert_eq!(params.START_TEMP, 1000.0);
+/// ```
+///
+/// # 2. パターンマッチによるパラメータテーブル定義
+///
+/// 問題サイズやモードなど、実行時の入力値に応じてパラメータを切り替えたい場合に使います
+///
+/// ```ignore
+/// params_impl! {
+///     { n: usize, mode: usize },
+///     { START_TEMP: f64, END_TEMP: f64 },
+///     [
+///         (0..100, 0) => { START_TEMP: 1000.0, END_TEMP: 10.0 },
+///         (_, 1) => { START_TEMP: 5000.0, END_TEMP: 100.0 },
+///         _ => { START_TEMP: 2000.0, END_TEMP: 20.0 },
+///     ]
+/// }
+///
+/// let params = Params::load(50, 0);
+/// assert_eq!(params.START_TEMP, 1000.0);
+/// ```
 #[macro_export]
 macro_rules! params_impl {
     (

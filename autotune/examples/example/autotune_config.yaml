@@ -3,21 +3,14 @@ optuna_config_path: autotune_config.yaml
 timeout: 600
 num_total_seed: 50
 case_num_per_group: 10
-input_params:
-  - name: n
-    type: int
-    rust_type: usize
-    parser:
-      type: constant
-      index: 0
-    partitions: [1, 50, 101]
-  - name: m
-    type: int
-    rust_type: usize
-    parser:
-      type: constant
-      index: 1
-    partitions: [1, 50, 101]
+input_params: |
+  use proconio::input;
+  input! { n: usize, m: usize }
+  if n < 10 && m < 10 {
+    0
+  } else {
+    1
+  }
 optuna:
   settings:
     storage_path: optuna.db
