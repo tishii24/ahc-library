@@ -1,4 +1,7 @@
+pub mod dump;
+pub mod env;
 pub mod fast_clear_array;
+pub mod grid;
 pub mod index_set;
 pub mod ndarray;
 pub mod object_pool;

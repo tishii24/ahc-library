@@ -48,7 +48,7 @@ def read_modules_without_test(mod_name: str, file_path: pathlib.Path) -> str:
                 if len(line) >= 1 and line[:1] == "}":
                     is_test = False
             else:
-                content += "\t" + line
+                content += "\t\t\t" + line
 
     content += "}\n\n"
 
@@ -61,11 +61,13 @@ def replace_macros(content: str) -> str:
     macros = [
         "neighbor_impl",
         "params_impl",
+        "dump",
+        "dumpln",
+        "perf",
     ]
     for macro in macros:
         content = content.replace(
-            f"crate::ahc_library::{macro}",
-            f"crate::{macro}",
+            f"use crate::ahc_library::{macro};", f"use crate::{macro};"
         )
 
     return content

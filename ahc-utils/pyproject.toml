@@ -11,6 +11,7 @@ dependencies = [
     "scipy>=1.11.4",
     "types-pyyaml>=6.0.12.20250915",
     "pydantic>=2.11.9",
+    "polars>=1.38.1",
 ]
 
 [project.scripts]
@@ -18,6 +19,7 @@ generate-impl = "ahc_utils.generate_impl:main"
 pahcer-optuna = "ahc_utils.pahcer_optuna:main"
 expander = "ahc_utils.expander:main"
 autotune = "ahc_utils.autotune:main"
+list = "ahc_utils.list:main"
 
 [tool.uv]
 package = true

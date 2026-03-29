@@ -10,6 +10,22 @@ use std::{
     time::{Duration, Instant},
 };
 
+use crate::utils::env::env_is_one;
+
+pub const AHC_PERF_ENABLED: bool = env_is_one(option_env!("AHC_PERF"));
+
+/// Set `AHC_PERF=1` in the environment to enable performance measurement.
+#[macro_export]
+macro_rules! perf {
+    ($name:expr $(,)?) => {
+        let _sw = if const { $crate::utils::stopwatch::AHC_PERF_ENABLED } {
+            Some(ahc_library::utils::stopwatch::Perf::start_singleton($name))
+        } else {
+            None
+        };
+    };
+}
+
 /// 実行時間を計測・集計する構造体
 ///
 /// # Examples
