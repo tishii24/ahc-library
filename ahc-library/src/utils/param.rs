@@ -22,22 +22,20 @@
 ///
 /// ```ignore
 /// params_impl! {
-///     { n: usize, mode: usize },
 ///     { START_TEMP: f64, END_TEMP: f64 },
 ///     [
-///         (0..100, 0) => { START_TEMP: 1000.0, END_TEMP: 10.0 },
-///         (_, 1) => { START_TEMP: 5000.0, END_TEMP: 100.0 },
+///         "group_0" => { START_TEMP: 1000.0, END_TEMP: 10.0 },
+///         "group_1" => { START_TEMP: 5000.0, END_TEMP: 100.0 },
 ///         _ => { START_TEMP: 2000.0, END_TEMP: 20.0 },
 ///     ]
 /// }
 ///
-/// let params = Params::load(50, 0);
+/// let params = Params::load("group_0");
 /// assert_eq!(params.START_TEMP, 1000.0);
 /// ```
 #[macro_export]
 macro_rules! params_impl {
     (
-        { $( $arg:ident : $arg_ty:ty ),* $(,)? },
         { $( $pname:ident : $pty:ty ),* $(,)? },
         [ $( $pat:pat => { $( $fname:ident : $fval:expr ),* $(,)? } ),+ $(,)? ]
     ) => {
@@ -48,8 +46,8 @@ macro_rules! params_impl {
         }
 
         impl Params {
-            pub fn load( $( $arg: $arg_ty ),* ) -> Self {
-                match ( $( $arg ),* ) {
+            pub fn load(group_id: &str) -> Self {
+                match group_id {
                     $(
                         $pat => Self {
                             $( $fname: $fval, )*
@@ -140,33 +138,18 @@ mod tests {
     }
 
     #[test]
-    fn test_define_params_with_ranges() {
+    fn test_pattern_params() {
         params_impl! {
-            { n: usize, m: usize, k: usize, },
-            { START_TEMP: f64, END_TEMP: f64, },
+            { START_TEMP: f64, END_TEMP: f64 },
             [
-                (0..10, 10..20, 0,) => { START_TEMP: 1000., END_TEMP: 10. },
-                (10..20, 10..20, 0,) => { START_TEMP: 2000., END_TEMP: 20. },
-                (0..10, 10..20, 1,) => { START_TEMP: 10000., END_TEMP: 100. },
-                (10..20, 10..20, 1,) => { START_TEMP: 20000., END_TEMP: 200. },
-                _ => { START_TEMP: 2000., END_TEMP: 20. },
+                "group_0" => { START_TEMP: 1000.0, END_TEMP: 10.0 },
+                "group_1" => { START_TEMP: 5000.0, END_TEMP: 100.0 },
+                _ => { START_TEMP: 2000.0, END_TEMP: 20.0 },
             ]
         }
-
-        let p1 = Params::load(5, 15, 0);
-        assert_eq!(p1.START_TEMP, 1000.);
-        assert_eq!(p1.END_TEMP, 10.);
-
-        let p2 = Params::load(12, 15, 0);
-        assert_eq!(p2.START_TEMP, 2000.);
-        assert_eq!(p2.END_TEMP, 20.);
-
-        let p3 = Params::load(100, 100, 0);
-        assert_eq!(p3.START_TEMP, 2000.);
-        assert_eq!(p3.END_TEMP, 20.);
-
-        let p4 = Params::load(5, 15, 1);
-        assert_eq!(p4.START_TEMP, 10000.);
-        assert_eq!(p4.END_TEMP, 100.);
+        let params = Params::load("group_0");
+        println!("{:?}", params);
+        assert_eq!(params.START_TEMP, 1000.0);
+        assert_eq!(params.END_TEMP, 10.0);
     }
 }

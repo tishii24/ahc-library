@@ -30,7 +30,7 @@ pub fn parse_input(f: &str) -> Input {
 }
 
 pub fn parse_output(_input: &Input, f: &str) -> Output {
-    let mut f = proconio::source::once::OnceSource::from(f);
+    let f = proconio::source::once::OnceSource::from(f);
     input! {
         from f,
         s: i64,
@@ -64,7 +64,7 @@ pub fn vis_default(input: &Input, out: &Output) -> (i64, String, String) {
     (score, svg, err)
 }
 
-pub fn vis(input: &Input, out: &Output, show_number: bool, t: i64) -> (i64, String, String) {
+pub fn vis(input: &Input, out: &Output, _show_number: bool, _t: i64) -> (i64, String, String) {
     let (score, err) = compute_score_detail(input, out);
     (score, "".to_string(), err)
 }

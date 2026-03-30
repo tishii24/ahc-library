@@ -1,0 +1,21 @@
+settings:
+  timeout: 5
+  storage_path: optuna.db
+  direction: maximize
+  score_type: relative
+pruner:
+  threshold: 0.02
+params:
+  - name: n_coef
+    type: float
+    rust_type: f64
+    default: 5.0
+    min: 1.0
+    max: 10.0
+  - name: m_coef
+    type: float
+    rust_type: f64
+    default: 5.0
+    min: 1.0
+    max: 10.0
+ignore_params: []

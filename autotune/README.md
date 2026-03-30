@@ -5,6 +5,7 @@
 ```
 optuna
 pahcer
+pahcer-optuna
 ```
 
 ## 手順

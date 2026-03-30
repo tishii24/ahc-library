@@ -4,7 +4,7 @@ from pydantic import BaseModel, Field
 
 
 class Settings(BaseModel):
-    storage_path: str
+    timeout: int
     direction: Literal["maximize", "minimize"]
     score_type: Literal["relative", "absolute", "log10"]
 

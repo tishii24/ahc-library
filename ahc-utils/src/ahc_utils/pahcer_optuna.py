@@ -13,10 +13,6 @@ import optuna
 import yaml
 
 from ahc_utils.core.config import OptunaConfig
-from ahc_utils.core.generate_impl import (
-    generate_impl,
-    get_best_values_from_optuna_study,
-)
 
 
 @classopt.classopt(default_long=True)
@@ -24,11 +20,11 @@ class Args:
     study_name: str = classopt.config(
         "--study-name", required=True, help="Name of the study"
     )
+    storage_path: str = classopt.config(
+        "--storage-path", required=True, help="Path to the storage file"
+    )
     config_path: str = classopt.config(
         "--config", required=True, help="Path to config file"
-    )
-    timeout: int = classopt.config(
-        "--timeout", default=600, help="Timeout in seconds for the optimization"
     )
 
 
@@ -151,23 +147,23 @@ class Objective:
         return {k: str(v) for k, v in params.items()}
 
 
-def run_optuna(study_name: str, timeout: float, config: OptunaConfig) -> None:
+def run_optuna(study_name: str, storage_path: str, config: OptunaConfig) -> None:
     study = optuna.create_study(
-        storage=f"sqlite:///{config.settings.storage_path}",
+        storage=storage_path,
         direction=config.settings.direction,
         study_name=study_name,
         pruner=optuna.pruners.WilcoxonPruner(p_threshold=config.pruner.threshold),
         sampler=optuna.samplers.TPESampler(),
         load_if_exists=True,
     )
-    study.optimize(Objective(config=config), timeout=timeout)
+    study.optimize(Objective(config=config), timeout=config.settings.timeout)
 
 
 def main() -> None:
     args = Args.from_args()  # type: ignore
 
     with open(args.config_path, "r") as file:
-        config = yaml.safe_load(file)["optuna"]
+        config = yaml.safe_load(file)
 
     config = OptunaConfig(**config)
 
@@ -175,15 +171,9 @@ def main() -> None:
     print("config:", config)
 
     try:
-        run_optuna(args.study_name, args.timeout, config)
+        run_optuna(args.study_name, args.storage_path, config)
     except KeyboardInterrupt:
         print("interrupted.")
-    finally:
-        best_params = get_best_values_from_optuna_study(
-            args.study_name, config.settings.storage_path
-        )
-        impl = generate_impl(best_params, config.params)
-        print("impl:\n" + impl)
 
 
 if __name__ == "__main__":

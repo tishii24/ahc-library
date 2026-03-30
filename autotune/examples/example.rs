@@ -6,8 +6,14 @@ fn main() {
         .status()
         .unwrap();
     assert!(Command::new("autotune")
-        .args(&["--config_path", "config_example.yaml"])
-        .current_dir("examples")
+        .args(&[
+            "--config_path",
+            "autotune_config.yaml",
+            "--optuna_study_prefix",
+            "study0"
+        ])
+        .current_dir("examples/example")
         .status()
-        .is_ok());
+        .map(|status| status.success())
+        .unwrap_or(false));
 }

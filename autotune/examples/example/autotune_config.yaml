@@ -1,34 +1,15 @@
-base_dir: ./.autotune
-optuna_config_path: autotune_config.yaml
-timeout: 600
-num_total_seed: 50
+storage_path: sqlite:///optuna.db
+work_dir: autotune
+tools_dir: tools
+base_pahcer_file: pahcer_config.toml
+optuna_config_path: optuna_config.yaml
 case_num_per_group: 10
-input_params: |
+optuna_study_prefix: study0
+input_fn: |
   use proconio::input;
   input! { n: usize, m: usize }
-  if n < 10 && m < 10 {
-    0
+  if n < 100 && m < 100 {
+    "0".to_string()
   } else {
-    1
+    "1".to_string()
   }
-optuna:
-  settings:
-    storage_path: optuna.db
-    direction: maximize
-    score_type: relative
-  pruner:
-    threshold: 0.02
-  params:
-    - name: n_coef
-      type: float
-      rust_type: f64
-      default: 5.0
-      min: 1.0
-      max: 10.0
-    - name: m_coef
-      type: float
-      rust_type: f64
-      default: 5.0
-      min: 1.0
-      max: 10.0
-  ignore_params: []

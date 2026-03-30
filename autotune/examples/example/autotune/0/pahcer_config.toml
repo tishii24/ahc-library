@@ -1,0 +1,74 @@
+[general]
+version = "0.3.1"
+
+[problem]
+objective = "Min"
+problem_name = "example"
+score_regex = '(?m)^\s*Score\s*=\s*(?P<score>\d+)\s*$'
+
+[test]
+end_seed = 10
+out_dir = "autotune/0/pahcer"
+start_seed = 0
+threads = 0
+
+[[test.compile_steps]]
+args = [
+    "build",
+    "--release",
+]
+program = "cargo"
+
+[[test.compile_steps]]
+args = [
+    "-f",
+    "./example",
+]
+program = "rm"
+
+[[test.compile_steps]]
+args = [
+    "./target/release/example",
+    "./example",
+]
+program = "mv"
+
+[[test.compile_steps]]
+args = [
+    "build",
+    "--release",
+    "--bin",
+    "vis",
+]
+current_dir = "./tools"
+program = "cargo"
+
+[[test.compile_steps]]
+args = [
+    "-f",
+    "./vis",
+]
+program = "rm"
+
+[[test.compile_steps]]
+args = [
+    "./tools/target/release/vis",
+    "./vis",
+]
+program = "mv"
+
+[[test.test_steps]]
+args = []
+measure_time = true
+program = "./example"
+stderr = "autotune/0/err/{SEED04}.txt"
+stdin = "autotune/0/in/{SEED04}.txt"
+stdout = "autotune/0/out/{SEED04}.txt"
+
+[[test.test_steps]]
+args = [
+    "./tools/in/{SEED04}.txt",
+    "./tools/out/{SEED04}.txt",
+]
+measure_time = false
+program = "./vis"
