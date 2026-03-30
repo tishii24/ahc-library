@@ -18,19 +18,20 @@ from ahc_utils.core.config import OptunaConfig
 @classopt.classopt(default_long=True)
 class Args:
     study_name: str = classopt.config(
-        "--study-name", required=True, help="Name of the study"
-    )
-    storage_path: str = classopt.config(
-        "--storage-path", required=True, help="Path to the storage file"
+        "--study_name", required=True, help="Name of the study"
     )
     config_path: str = classopt.config(
-        "--config", required=True, help="Path to config file"
+        "--config_path", required=True, help="Path to config file"
+    )
+    pahcer_config_path: str = classopt.config(
+        "--pahcer_config_path", default="pahcer_config.toml"
     )
 
 
 class Objective:
-    def __init__(self, config: OptunaConfig) -> None:
+    def __init__(self, config: OptunaConfig, pahcer_config_path: str) -> None:
         self.config = config
+        self.pahcer_config_path = pahcer_config_path
 
     def __call__(self, trial: optuna.trial.Trial) -> float:
         params = self.generate_params(trial)
@@ -46,6 +47,8 @@ class Objective:
             "--shuffle",
             "--no-result-file",
             "--freeze-best-scores",
+            "--setting-file",
+            self.pahcer_config_path,
         ]
 
         if trial.number != 0:
@@ -147,16 +150,19 @@ class Objective:
         return {k: str(v) for k, v in params.items()}
 
 
-def run_optuna(study_name: str, storage_path: str, config: OptunaConfig) -> None:
+def run_optuna(study_name: str, config: OptunaConfig, pahcer_config_path: str) -> None:
     study = optuna.create_study(
-        storage=storage_path,
+        storage=config.settings.storage_path,
         direction=config.settings.direction,
         study_name=study_name,
         pruner=optuna.pruners.WilcoxonPruner(p_threshold=config.pruner.threshold),
         sampler=optuna.samplers.TPESampler(),
         load_if_exists=True,
     )
-    study.optimize(Objective(config=config), timeout=config.settings.timeout)
+    study.optimize(
+        Objective(config=config, pahcer_config_path=pahcer_config_path),
+        timeout=config.settings.timeout,
+    )
 
 
 def main() -> None:
@@ -171,7 +177,11 @@ def main() -> None:
     print("config:", config)
 
     try:
-        run_optuna(args.study_name, args.storage_path, config)
+        run_optuna(
+            args.study_name,
+            config,
+            args.pahcer_config_path,
+        )
     except KeyboardInterrupt:
         print("interrupted.")
 

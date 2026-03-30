@@ -3,6 +3,11 @@ use std::path::PathBuf;
 use serde::Deserialize;
 
 #[derive(Deserialize, Debug, Clone)]
+pub struct OptunaSettings {
+    pub storage_path: PathBuf,
+}
+
+#[derive(Deserialize, Debug, Clone)]
 #[serde(tag = "type", rename_all = "lowercase")]
 pub enum OptunaParameterConfig {
     Int {
@@ -20,12 +25,11 @@ pub enum OptunaParameterConfig {
 #[derive(Deserialize, Debug, Clone)]
 pub struct OptunaConfig {
     pub params: Vec<OptunaParameterConfig>,
+    pub settings: OptunaSettings,
 }
 
 #[derive(Deserialize, Debug, Clone)]
 pub struct AutotuneConfig {
-    #[serde(default = "default_storage_path")]
-    pub storage_path: PathBuf,
     #[serde(default = "default_work_dir")]
     pub work_dir: PathBuf,
     #[serde(default = "default_tools_dir")]
@@ -39,9 +43,6 @@ pub struct AutotuneConfig {
     pub input_fn: String,
 }
 
-fn default_storage_path() -> PathBuf {
-    PathBuf::from("sqlite:///optuna.db")
-}
 fn default_work_dir() -> PathBuf {
     PathBuf::from("autotune")
 }

@@ -66,18 +66,18 @@ fn main() -> anyhow::Result<()> {
 
         let optimizer = PahcerOptunaOptimizer;
         let request = OptimizeRequest::new(
-            config.storage_path.clone(),
             group_id.clone(),
             args.optuna_study_prefix.clone(),
             pahcer_config,
             config.optuna_config_path.clone(),
+            optuna_config.settings.storage_path.clone(),
         );
         let result = optimizer.run(request)?;
         results.push((group_id, result.best_params));
     }
 
     let formatter = ParamsImplFormatter;
-    let output = formatter.format(&optuna_config, &results);
+    let output = formatter.format(&optuna_config.params, &results);
     println!("{}", output);
 
     Ok(())

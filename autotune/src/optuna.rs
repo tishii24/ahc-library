@@ -4,30 +4,31 @@ use std::{
 };
 
 use anyhow::Result;
+use tracing::info;
 
 use crate::pahcer::config::PahcerConfig;
 
 pub struct OptimizeRequest {
-    storage_path: PathBuf,
     study_prefix: String,
     group_id: String,
     pahcer_config: PahcerConfig,
     optuna_config_path: PathBuf,
+    optuna_storage_path: PathBuf,
 }
 impl OptimizeRequest {
     pub fn new(
-        storage_path: PathBuf,
         group_id: String,
         study_prefix: String,
         pahcer_config: PahcerConfig,
         optuna_config_path: PathBuf,
+        optuna_storage_path: PathBuf,
     ) -> Self {
         Self {
-            storage_path,
             group_id,
             study_prefix,
             pahcer_config,
             optuna_config_path,
+            optuna_storage_path,
         }
     }
 }
@@ -57,18 +58,18 @@ impl PahcerOptimizer for PahcerOptunaOptimizer {
             .stdout(Stdio::null())
             .status()?;
 
-        Command::new("pahcer-optuna")
-            .args(&[
-                "--study_name",
-                &study_name,
-                "--config_path",
-                request.optuna_config_path.to_str().unwrap(),
-                "--storage_path",
-                request.storage_path.to_str().unwrap(),
-            ])
-            .status()?;
+        let args = &[
+            "--study_name",
+            &study_name,
+            "--config_path",
+            request.optuna_config_path.to_str().unwrap(),
+            "--pahcer_config_path",
+            request.pahcer_config.config_path.to_str().unwrap(),
+        ];
+        info!("pahcer-optuna args: {:?}", args);
+        Command::new("pahcer-optuna").args(args).status()?;
 
-        let best_params = get_best_params(&study_name, &request.storage_path)?;
+        let best_params = get_best_params(&study_name, &request.optuna_storage_path)?;
         Ok(OptimizeResult { best_params })
     }
 }

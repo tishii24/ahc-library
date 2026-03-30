@@ -6,9 +6,7 @@ from ahc_utils.core.config import OptunaParameter
 
 
 def get_best_values_from_optuna_study(study_name: str, storage_path: str) -> dict:
-    study = optuna.load_study(
-        study_name=study_name, storage=f"sqlite:///{storage_path}"
-    )
+    study = optuna.load_study(study_name=study_name, storage=storage_path)
     return study.best_trial.params
 
 

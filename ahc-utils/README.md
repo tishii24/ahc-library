@@ -14,29 +14,6 @@ uv tool install --no-cache ../../ahc-utils --force
 - `optuna.settings.storage_path` に Optuna の SQLite ファイルを指定する
 - `pahcer-optuna` と `list` を使う場合は `pahcer` コマンドと、その実行結果一式を利用できる状態にしておく
 
-設定例:
-
-```yaml
-optuna:
-  settings:
-    storage_path: optuna.db
-    direction: maximize
-    score_type: relative
-  pruner:
-    threshold: 0.02
-  params:
-    - name: START_TEMP
-      type: float
-      default: 10.0
-      min: 1.0
-      max: 10000.0
-    - name: END_TEMP
-      type: float
-      default: 1e-1
-      min: 1e-3
-      max: 1e-1
-```
-
 ### `generate_impl`
 
 CLI コマンドは `generate-impl` です。
@@ -77,22 +54,8 @@ CLI コマンドは `pahcer-optuna` です。
 #### 実行例
 
 ```
-pahcer-optuna --study-name my-study --config config.yaml
+pahcer-optuna --study-name my-study --config config.yaml --storage_path=sqlite:///optuna.db
 ```
-
-タイムアウトを 30 分にする場合:
-
-```
-pahcer-optuna --study-name my-study --config config.yaml --timeout 1800
-```
-
-#### 主な挙動
-
-- `optuna.params` に書かれたパラメータを探索する
-- `optuna.ignore_params` に含まれるパラメータは固定値 `default` のまま使う
-- `score_type` に応じて `score` / `relative_score` / `log10(score)` を最適化する
-- 初回 Trial 以外は `pahcer run` に `--no-compile` を付ける
-- Prune された Trial も途中までの平均スコアを Optuna に反映する
 
 #### よくある流れ
 

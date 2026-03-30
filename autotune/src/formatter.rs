@@ -1,10 +1,10 @@
-use crate::config::{OptunaConfig, OptunaParameterConfig};
+use crate::config::OptunaParameterConfig;
 
 pub trait ParamFormatter {
     /// (group_id, best_params)のリストを受け取って、最終的な出力形式に整形する
     fn format(
         &self,
-        optuna_config: &OptunaConfig,
+        optuna_params: &Vec<OptunaParameterConfig>,
         params: &Vec<(String, serde_json::Map<String, serde_json::Value>)>,
     ) -> String;
 }
@@ -26,11 +26,10 @@ pub struct ParamsImplFormatter;
 impl ParamFormatter for ParamsImplFormatter {
     fn format(
         &self,
-        optuna_config: &OptunaConfig,
+        optuna_params: &Vec<OptunaParameterConfig>,
         params: &Vec<(String, serde_json::Map<String, serde_json::Value>)>,
     ) -> String {
-        let param_defs = optuna_config
-            .params
+        let param_defs = optuna_params
             .iter()
             .map(|param| match param {
                 OptunaParameterConfig::Int {
@@ -100,20 +99,18 @@ mod tests {
 
     #[test]
     fn test_params_impl_formatter() {
-        let optuna_config = OptunaConfig {
-            params: vec![
-                OptunaParameterConfig::Float {
-                    name: "START_TEMP".to_string(),
-                    rust_type: "f64".to_string(),
-                    default: 2000.0,
-                },
-                OptunaParameterConfig::Float {
-                    name: "END_TEMP".to_string(),
-                    rust_type: "f64".to_string(),
-                    default: 20.0,
-                },
-            ],
-        };
+        let optuna_params = vec![
+            OptunaParameterConfig::Float {
+                name: "START_TEMP".to_string(),
+                rust_type: "f64".to_string(),
+                default: 2000.0,
+            },
+            OptunaParameterConfig::Float {
+                name: "END_TEMP".to_string(),
+                rust_type: "f64".to_string(),
+                default: 20.0,
+            },
+        ];
         let params = vec![
             (
                 "group_0".to_string(),
@@ -131,7 +128,7 @@ mod tests {
             ),
         ];
         let formatter = ParamsImplFormatter;
-        let output = formatter.format(&optuna_config, &params);
+        let output = formatter.format(&optuna_params, &params);
         let expected_output = r#"params_impl! {
     { START_TEMP: f64, END_TEMP: f64 },
     [

@@ -39,6 +39,7 @@ impl PahcerConfig {
 /// - `test.test_steps[0].stdin`: `{work_dir}/{group_id}/in/{SEED04}.txt`
 /// - `test.test_steps[0].stdout`: `{work_dir}/{group_id}/out/{SEED04}.txt`
 /// - `test.test_steps[0].stderr`: `{work_dir}/{group_id}/err/{SEED04}.txt`
+/// - `test.test_steps[1].args`: `["{work_dir}/{group_id}/in/{SEED04}.txt", "{work_dir}/{group_id}/out/{SEED04}.txt"]`
 fn generate_pahcer_config(pahcer_config: &PahcerConfig, base_pahcer_toml: &str) -> String {
     let mut config: Value = toml::from_str(base_pahcer_toml).expect("invalid pahcer config toml");
     let test = config
@@ -79,6 +80,26 @@ fn generate_pahcer_config(pahcer_config: &PahcerConfig, base_pahcer_toml: &str) 
         )),
     );
 
+    let second_test_step = test
+        .get_mut("test_steps")
+        .and_then(Value::as_array_mut)
+        .and_then(|steps| steps.get_mut(1))
+        .and_then(Value::as_table_mut)
+        .expect("missing test.test_steps[1]");
+    second_test_step.insert(
+        "args".to_string(),
+        Value::Array(vec![
+            Value::String(format!(
+                "{}/{{SEED04}}.txt",
+                pahcer_config.stdin_dir.display()
+            )),
+            Value::String(format!(
+                "{}/{{SEED04}}.txt",
+                pahcer_config.stdout_dir.display()
+            )),
+        ]),
+    );
+
     toml::to_string_pretty(&config).expect("failed to serialize pahcer config toml")
 }
 
@@ -97,6 +118,9 @@ program = "./example"
 stdin = "./tools/in/{SEED04}.txt"
 stdout = "./tools/out/{SEED04}.txt"
 stderr = "./tools/err/{SEED04}.txt"
+
+[[test.test_steps]]
+args = ["./tools/in/{SEED04}.txt", "./tools/out/{SEED04}.txt"]
 "#;
 
         let pahcer_config = PahcerConfig::new(&PathBuf::from("./autotune"), "group_a");
@@ -109,6 +133,12 @@ program = "./example"
 stderr = "./autotune/group_a/err/{SEED04}.txt"
 stdin = "./autotune/group_a/in/{SEED04}.txt"
 stdout = "./autotune/group_a/out/{SEED04}.txt"
+
+[[test.test_steps]]
+args = [
+    "./autotune/group_a/in/{SEED04}.txt",
+    "./autotune/group_a/out/{SEED04}.txt",
+]
 "#;
 
         assert_eq!(actual, expected);
@@ -178,8 +208,8 @@ stdout = "./autotune/x/out/{SEED04}.txt"
 
 [[test.test_steps]]
 args = [
-    "./tools/in/{SEED04}.txt",
-    "./tools/out/{SEED04}.txt",
+    "./autotune/x/in/{SEED04}.txt",
+    "./autotune/x/out/{SEED04}.txt",
 ]
 measure_time = false
 program = "./vis"

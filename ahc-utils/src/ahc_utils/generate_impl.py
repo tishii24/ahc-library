@@ -20,7 +20,7 @@ def main() -> None:
     args = Args.from_args()  # type: ignore
 
     with open(args.config_path, "r") as file:
-        config = yaml.safe_load(file)["optuna"]
+        config = yaml.safe_load(file)
 
     config = OptunaConfig(**config)
 
@@ -31,7 +31,7 @@ def main() -> None:
                 args.study_name, config.settings.storage_path
             )
         except Exception:
-            pass
+            print("Failed to load study. Using default values from config.")
 
     impl = generate_impl(best_params, config.params)
     print(impl)
