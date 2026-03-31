@@ -25,8 +25,6 @@ struct Args {
     config_path: PathBuf,
     #[arg(long = "optuna_study_prefix")]
     optuna_study_prefix: String,
-    #[arg(long = "generate_only", default_value_t = false)]
-    generate_only: bool,
 }
 
 fn main() -> anyhow::Result<()> {

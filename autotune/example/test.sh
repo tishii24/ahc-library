@@ -13,6 +13,11 @@
 # pahcer-optuna --study_name study-optuna0 --config_path optuna_config.yaml
 # generate-impl --config optuna_config.yaml --study_name study-optuna0
 
-autotune --config_path autotune_config.yaml --optuna_study_prefix s0
+autotune --config_path autotune_config.yaml --optuna_study_prefix test_study
 
+optuna best-trial --study-name test_study_0 --storage sqlite:///optuna.db -f json
+optuna best-trial --study-name test_study_1 --storage sqlite:///optuna.db -f json
+optuna best-trial --study-name test_study_2 --storage sqlite:///optuna.db -f json
+optuna best-trial --study-name test_study_3 --storage sqlite:///optuna.db -f json
 
+pahcer-optuna --study_name study-optuna0 --config_path optuna_config.yaml --pahcer_config_path autotune/0/pahcer_config.toml
