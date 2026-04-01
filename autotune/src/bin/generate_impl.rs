@@ -9,8 +9,8 @@ use std::path::PathBuf;
 
 #[derive(Parser, Debug)]
 struct Args {
-    #[arg(long = "config_path")]
-    config_path: PathBuf,
+    #[arg(long = "optuna_config_path")]
+    optuna_config_path: PathBuf,
     #[arg(long = "study_name", default_value = None)]
     study_name: Option<String>,
 }
@@ -18,7 +18,7 @@ struct Args {
 fn main() -> anyhow::Result<()> {
     let args = Args::parse();
     let config_str =
-        std::fs::read_to_string(&args.config_path).context("Failed to read config file")?;
+        std::fs::read_to_string(&args.optuna_config_path).context("Failed to read config file")?;
     let optuna_config: PahcerOptunaConfig =
         serde_yaml::from_str(&config_str).context("Failed to parse config file")?;
 

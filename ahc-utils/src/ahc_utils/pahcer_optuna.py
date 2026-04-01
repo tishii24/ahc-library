@@ -73,8 +73,8 @@ class Args:
     study_name: str = classopt.config(
         "--study_name", required=True, help="Name of the study"
     )
-    config_path: str = classopt.config(
-        "--config_path", required=True, help="Path to config file"
+    optuna_config_path: str = classopt.config(
+        "--optuna_config_path", required=True, help="Path to config file"
     )
     pahcer_config_path: str = classopt.config(
         "--pahcer_config_path", default="pahcer_config.toml"
@@ -221,7 +221,7 @@ def run_optuna(study_name: str, config: OptunaConfig, pahcer_config_path: str) -
 def main() -> None:
     args = Args.from_args()  # type: ignore
 
-    with open(args.config_path, "r") as file:
+    with open(args.optuna_config_path, "r") as file:
         config = yaml.safe_load(file)
 
     config = OptunaConfig(**config)

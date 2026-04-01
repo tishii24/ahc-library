@@ -15,7 +15,6 @@ dependencies = [
 ]
 
 [project.scripts]
-generate-impl = "ahc_utils.generate_impl:main"
 pahcer-optuna = "ahc_utils.pahcer_optuna:main"
 expander = "ahc_utils.expander:main"
 plist = "ahc_utils.plist:main"

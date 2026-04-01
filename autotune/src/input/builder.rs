@@ -75,6 +75,11 @@ impl<GE: InputGenerator, GR: InputGrouper> InputBuilder<GE, GR> {
             next_seed = chunk_end;
         }
 
+        info!(
+            "Initial processing done. Discovered groups: {:?}",
+            group_ids
+        );
+
         while group_ids
             .iter()
             .any(|group_id| group_seeds.get(group_id).map_or(0, Vec::len) < case_num_per_group)

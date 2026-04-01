@@ -68,7 +68,7 @@ impl<O: OptunaClient> PahcerOptimizer for PahcerOptunaOptimizer<O> {
         let args = &[
             "--study_name",
             &study_name,
-            "--config_path",
+            "--optuna_config_path",
             request.optuna_config_path.to_str().unwrap(),
             "--pahcer_config_path",
             request.pahcer_config.config_path.to_str().unwrap(),
