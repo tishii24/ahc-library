@@ -2,7 +2,7 @@ work_dir: autotune
 tools_dir: tools
 base_pahcer_file: pahcer_config.toml
 optuna_config_path: optuna_config.yaml
-case_num_per_group: 10
+case_num_per_group: 20
 input_fn: |
   use proconio::input;
   input! { n: usize, m: usize }

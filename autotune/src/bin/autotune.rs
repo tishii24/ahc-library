@@ -1,19 +1,13 @@
-mod config;
-mod formatter;
-mod input;
-mod optuna;
-mod pahcer;
-
-use crate::{
-    config::{AutotuneConfig, OptunaConfig},
+use autotune::{
+    config::{AutotuneConfig, PahcerOptunaConfig},
+    external::{optuna::OptunaCliClient, pahcer::PahcerConfig},
     formatter::{ParamFormatter, ParamsImplFormatter},
     input::{
         builder::InputBuilder,
         generator::{InputGenerator, ToolInputGenerator},
         grouper::InputFnGrouper,
     },
-    optuna::{OptimizeRequest, PahcerOptimizer, PahcerOptunaOptimizer},
-    pahcer::config::PahcerConfig,
+    optimizer::{OptimizeRequest, PahcerOptimizer, PahcerOptunaOptimizer},
 };
 use clap::Parser;
 use std::{fs, path::PathBuf};
@@ -34,7 +28,7 @@ fn main() -> anyhow::Result<()> {
     let config_str = fs::read_to_string(&args.config_path)?;
     let config: AutotuneConfig = serde_yaml::from_str(&config_str)?;
     let optuna_config_str = fs::read_to_string(&config.optuna_config_path)?;
-    let optuna_config: OptunaConfig = serde_yaml::from_str(&optuna_config_str)?;
+    let optuna_config: PahcerOptunaConfig = serde_yaml::from_str(&optuna_config_str)?;
     let base_pahcer_toml = fs::read_to_string(&config.base_pahcer_file)?;
 
     let input_generator =
@@ -63,7 +57,8 @@ fn main() -> anyhow::Result<()> {
             ToolInputGenerator::new(config.tools_dir.clone(), pahcer_config.stdin_dir.clone());
         let _ = input_generator.generate_inputs(&seeds);
 
-        let optimizer = PahcerOptunaOptimizer;
+        let optuna_client = OptunaCliClient;
+        let optimizer = PahcerOptunaOptimizer::new(optuna_client);
         let request = OptimizeRequest::new(
             group_id.clone(),
             args.optuna_study_prefix.clone(),
@@ -76,7 +71,7 @@ fn main() -> anyhow::Result<()> {
     }
 
     let formatter = ParamsImplFormatter;
-    let output = formatter.format(&optuna_config.params, &results);
+    let output = formatter.format_multiple(&optuna_config.params, &results);
     println!("{}", output);
 
     Ok(())

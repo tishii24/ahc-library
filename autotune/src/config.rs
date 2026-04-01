@@ -3,7 +3,7 @@ use std::path::PathBuf;
 use serde::Deserialize;
 
 #[derive(Deserialize, Debug, Clone)]
-pub struct OptunaSettings {
+pub struct PahcerOptunaSettings {
     pub storage_path: PathBuf,
 }
 
@@ -23,9 +23,9 @@ pub enum OptunaParameterConfig {
 }
 
 #[derive(Deserialize, Debug, Clone)]
-pub struct OptunaConfig {
+pub struct PahcerOptunaConfig {
     pub params: Vec<OptunaParameterConfig>,
-    pub settings: OptunaSettings,
+    pub settings: PahcerOptunaSettings,
 }
 
 #[derive(Deserialize, Debug, Clone)]

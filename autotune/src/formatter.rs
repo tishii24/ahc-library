@@ -1,30 +1,79 @@
 use crate::config::OptunaParameterConfig;
 
 pub trait ParamFormatter {
+    /// Optunaのパラメータ定義と、グループごとの最適パラメータを受け取って、最終的な出力形式に整形する
+    fn format_single(
+        &self,
+        optuna_params: &Vec<OptunaParameterConfig>,
+        params: &Option<serde_json::Map<String, serde_json::Value>>,
+    ) -> String;
+
     /// (group_id, best_params)のリストを受け取って、最終的な出力形式に整形する
-    fn format(
+    fn format_multiple(
         &self,
         optuna_params: &Vec<OptunaParameterConfig>,
         params: &Vec<(String, serde_json::Map<String, serde_json::Value>)>,
     ) -> String;
 }
 
-/// `params_impl!`マクロの出力形式に整形するParamFormatterの実装
-/// 例えば、以下のような出力を生成することを想定
-/// ```rust
-/// params_impl! {
-///     { START_TEMP: f64, END_TEMP: f64 },
-///     [
-///         "group_0" => { START_TEMP: 1000.0, END_TEMP: 10.0 },
-///         "group_1" => { START_TEMP: 5000.0, END_TEMP: 100.0 },
-///         _ => { START_TEMP: 2000.0, END_TEMP: 20.0 },
-///     ]
-/// }
-/// ```
+/// `params_impl!`マクロの出力形式に整形するGroupParamsFormatterの実装
 pub struct ParamsImplFormatter;
 
 impl ParamFormatter for ParamsImplFormatter {
-    fn format(
+    /// 例えば、以下のような出力を生成することを想定`
+    /// ```ignore
+    /// params_impl! {
+    ///     START_TEMP: f64 = 1000.,
+    ///     END_TEMP: f64 = 10.,
+    /// }
+    /// ```
+    fn format_single(
+        &self,
+        optuna_params: &Vec<OptunaParameterConfig>,
+        params: &Option<serde_json::Map<String, serde_json::Value>>,
+    ) -> String {
+        let mut lines = Vec::with_capacity(optuna_params.len() + 2);
+        lines.push("params_impl! {".to_string());
+        for param in optuna_params {
+            let (name, rust_type, default) = match param {
+                OptunaParameterConfig::Int {
+                    name,
+                    rust_type,
+                    default,
+                } => (name, rust_type, default.to_string()),
+                OptunaParameterConfig::Float {
+                    name,
+                    rust_type,
+                    default,
+                } => (
+                    name,
+                    rust_type,
+                    serde_json::Value::from(*default).to_string(),
+                ),
+            };
+            let value = params
+                .as_ref()
+                .and_then(|p| p.get(name))
+                .map(|v| v.to_string())
+                .unwrap_or(default);
+            lines.push(format!("    {}: {} = {},", name, rust_type, value));
+        }
+        lines.push("}".to_string());
+        lines.join("\n")
+    }
+
+    /// 例えば、以下のような出力を生成することを想定
+    /// ```ignore
+    /// params_impl! {
+    ///     { START_TEMP: f64, END_TEMP: f64 },
+    ///     [
+    ///         "group_0" => { START_TEMP: 1000.0, END_TEMP: 10.0 },
+    ///         "group_1" => { START_TEMP: 5000.0, END_TEMP: 100.0 },
+    ///         _ => { START_TEMP: 2000.0, END_TEMP: 20.0 },
+    ///     ]
+    /// }
+    /// ```
+    fn format_multiple(
         &self,
         optuna_params: &Vec<OptunaParameterConfig>,
         params: &Vec<(String, serde_json::Map<String, serde_json::Value>)>,
@@ -98,7 +147,57 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_params_impl_formatter() {
+    fn test_params_impl_formatter_single_with_params() {
+        let optuna_params = vec![
+            OptunaParameterConfig::Float {
+                name: "START_TEMP".to_string(),
+                rust_type: "f64".to_string(),
+                default: 2000.0,
+            },
+            OptunaParameterConfig::Float {
+                name: "END_TEMP".to_string(),
+                rust_type: "f64".to_string(),
+                default: 20.0,
+            },
+        ];
+        let params = Some(serde_json::Map::from_iter(vec![
+            ("START_TEMP".to_string(), serde_json::Value::from(1000.0)),
+            ("END_TEMP".to_string(), serde_json::Value::from(10.0)),
+        ]));
+        let formatter = ParamsImplFormatter;
+        let output = formatter.format_single(&optuna_params, &params);
+        let expected_output = r#"params_impl! {
+    START_TEMP: f64 = 1000.0,
+    END_TEMP: f64 = 10.0,
+}"#;
+        assert_eq!(output, expected_output);
+    }
+
+    #[test]
+    fn test_params_impl_formatter_single_without_params() {
+        let optuna_params = vec![
+            OptunaParameterConfig::Float {
+                name: "START_TEMP".to_string(),
+                rust_type: "f64".to_string(),
+                default: 2000.0,
+            },
+            OptunaParameterConfig::Float {
+                name: "END_TEMP".to_string(),
+                rust_type: "f64".to_string(),
+                default: 20.0,
+            },
+        ];
+        let formatter = ParamsImplFormatter;
+        let output = formatter.format_single(&optuna_params, &None);
+        let expected_output = r#"params_impl! {
+    START_TEMP: f64 = 2000.0,
+    END_TEMP: f64 = 20.0,
+}"#;
+        assert_eq!(output, expected_output);
+    }
+
+    #[test]
+    fn test_params_impl_formatter_multiple() {
         let optuna_params = vec![
             OptunaParameterConfig::Float {
                 name: "START_TEMP".to_string(),
@@ -128,7 +227,7 @@ mod tests {
             ),
         ];
         let formatter = ParamsImplFormatter;
-        let output = formatter.format(&optuna_params, &params);
+        let output = formatter.format_multiple(&optuna_params, &params);
         let expected_output = r#"params_impl! {
     { START_TEMP: f64, END_TEMP: f64 },
     [

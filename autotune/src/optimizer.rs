@@ -3,10 +3,9 @@ use std::{
     process::{Command, Stdio},
 };
 
-use anyhow::Result;
 use tracing::info;
 
-use crate::pahcer::config::PahcerConfig;
+use crate::external::{optuna::OptunaClient, pahcer::PahcerConfig};
 
 pub struct OptimizeRequest {
     study_prefix: String,
@@ -43,9 +42,17 @@ pub trait PahcerOptimizer {
     fn run(&self, request: OptimizeRequest) -> anyhow::Result<OptimizeResult>;
 }
 
-pub struct PahcerOptunaOptimizer;
+pub struct PahcerOptunaOptimizer<O: OptunaClient> {
+    optuna_client: O,
+}
 
-impl PahcerOptimizer for PahcerOptunaOptimizer {
+impl<O: OptunaClient> PahcerOptunaOptimizer<O> {
+    pub fn new(optuna_client: O) -> Self {
+        Self { optuna_client }
+    }
+}
+
+impl<O: OptunaClient> PahcerOptimizer for PahcerOptunaOptimizer<O> {
     fn run(&self, request: OptimizeRequest) -> anyhow::Result<OptimizeResult> {
         let study_name = format!("{}_{}", request.study_prefix, request.group_id);
 
@@ -69,40 +76,9 @@ impl PahcerOptimizer for PahcerOptunaOptimizer {
         info!("pahcer-optuna args: {:?}", args);
         Command::new("pahcer-optuna").args(args).status()?;
 
-        let best_params = get_best_params(&study_name, &request.optuna_storage_path)?;
+        let best_params = self
+            .optuna_client
+            .get_best_params(&study_name, &request.optuna_storage_path)?;
         Ok(OptimizeResult { best_params })
     }
-}
-
-fn get_best_params(
-    study_name: &str,
-    storage_path: &PathBuf,
-) -> Result<serde_json::Map<String, serde_json::Value>> {
-    let storage_path = storage_path
-        .to_str()
-        .ok_or_else(|| anyhow::anyhow!("Invalid storage path"))?;
-    let stdout = Command::new("optuna")
-        .args(&[
-            "best-trial",
-            "--study-name",
-            study_name,
-            "--storage",
-            storage_path,
-            "-f",
-            "json",
-        ])
-        .output()?;
-    if !stdout.status.success() {
-        anyhow::bail!(
-            "Failed to get best params: {}",
-            String::from_utf8_lossy(&stdout.stderr)
-        );
-    }
-    let output = String::from_utf8(stdout.stdout)?;
-    let json: serde_json::Map<String, serde_json::Value> = serde_json::from_str(&output)?;
-    Ok(json
-        .get("params")
-        .and_then(|v| v.as_object())
-        .cloned()
-        .unwrap_or_default())
 }
