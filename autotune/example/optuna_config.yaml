@@ -1,6 +1,6 @@
 settings:
   storage_path: sqlite:///optuna.db
-  timeout: 30
+  timeout: 10
   direction: minimize
   score_type: absolute
 pruner:
