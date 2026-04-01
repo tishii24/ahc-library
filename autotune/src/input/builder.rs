@@ -24,6 +24,7 @@ impl<GE: InputGenerator, GR: InputGrouper> InputBuilder<GE, GR> {
         case_num_per_group: usize,
         accept_new_groups: bool,
     ) -> Result<()> {
+        info!("Processing seeds from {} to {}...", start_seed, end_seed);
         let seeds = (start_seed..end_seed).collect::<Vec<_>>();
         let inputs = self.generator.generate_inputs(&seeds)?;
 
@@ -59,8 +60,9 @@ impl<GE: InputGenerator, GR: InputGrouper> InputBuilder<GE, GR> {
         let mut group_seeds: HashMap<String, Vec<u64>> = HashMap::new();
 
         let mut next_seed = start_seed;
-        while next_seed < trial_count {
-            let chunk_end = (next_seed + CHUNK_SIZE).min(trial_count);
+        let trial_end_seed = start_seed + trial_count;
+        while next_seed < trial_end_seed {
+            let chunk_end = (next_seed + CHUNK_SIZE).min(trial_end_seed);
             self.process_seed_range(
                 next_seed,
                 chunk_end,
@@ -231,7 +233,7 @@ mod tests {
         let grouper = ParityInputGrouper;
         let builder = InputBuilder::new(generator, grouper);
 
-        let inputs = builder.build_inputs(2, 10, 20).unwrap();
+        let inputs = builder.build_inputs(2, 10, 10).unwrap();
 
         let generated_seeds = calls.borrow().concat();
         assert_eq!(generated_seeds.len(), 10);

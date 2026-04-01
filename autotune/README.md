@@ -8,8 +8,3 @@ cargo install pahcer
 uv tool install --no-cache ahc-utils --force
 cargo install --path .
 ```
-
-todo:
-
-- case-per-numを反映する
-- start-seedを指定する

@@ -55,7 +55,8 @@ fn main() -> anyhow::Result<()> {
 
     for (group_id, seeds) in input_groups {
         info!("Optimizing for group: {}, seeds: {:?}", group_id, seeds);
-        let pahcer_config = PahcerConfig::new(&config.work_dir, &group_id);
+        let pahcer_config =
+            PahcerConfig::new(&config.work_dir, &group_id, config.case_num_per_group);
         pahcer_config.build_all(&base_pahcer_toml)?;
 
         let input_generator =
