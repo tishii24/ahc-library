@@ -46,6 +46,7 @@ impl<GE: InputGenerator, GR: InputGrouper> InputBuilder<GE, GR> {
     pub fn build_inputs(
         &self,
         case_num_per_group: usize,
+        start_seed: u64,
         trial_count: u64,
     ) -> Result<HashMap<String, Vec<u64>>> {
         const CHUNK_SIZE: u64 = 100;
@@ -57,7 +58,7 @@ impl<GE: InputGenerator, GR: InputGrouper> InputBuilder<GE, GR> {
         let mut group_ids = HashSet::new();
         let mut group_seeds: HashMap<String, Vec<u64>> = HashMap::new();
 
-        let mut next_seed = 0;
+        let mut next_seed = start_seed;
         while next_seed < trial_count {
             let chunk_end = (next_seed + CHUNK_SIZE).min(trial_count);
             self.process_seed_range(
@@ -174,7 +175,7 @@ mod tests {
         let grouper = MockInputGrouper;
         let builder = InputBuilder::new(generator, grouper);
 
-        let inputs = builder.build_inputs(2, 4).unwrap();
+        let inputs = builder.build_inputs(2, 0, 4).unwrap();
 
         assert_eq!(inputs.len(), 2);
         assert_eq!(inputs.get("even-small").unwrap(), &vec![0, 2]);
@@ -191,7 +192,7 @@ mod tests {
         let grouper = ParityInputGrouper;
         let builder = InputBuilder::new(generator, grouper);
 
-        let inputs = builder.build_inputs(3, 1000).unwrap();
+        let inputs = builder.build_inputs(3, 0, 1000).unwrap();
 
         let generated_seeds = calls.borrow().concat();
         assert_eq!(generated_seeds.len(), 1000);
@@ -210,7 +211,7 @@ mod tests {
         let grouper = SparseInputGrouper;
         let builder = InputBuilder::new(generator, grouper);
 
-        let inputs = builder.build_inputs(3, 5).unwrap();
+        let inputs = builder.build_inputs(3, 0, 5).unwrap();
 
         assert_eq!(inputs.get("fast").unwrap(), &vec![1, 2, 3]);
         assert_eq!(inputs.get("slow").unwrap(), &vec![0, 4, 7]);
@@ -219,5 +220,24 @@ mod tests {
         assert!(generated_seeds.len() > 5);
         assert_eq!(generated_seeds.first(), Some(&0));
         assert!(generated_seeds.contains(&7));
+    }
+
+    #[test]
+    fn test_build_inputs_with_nonzero_start_seed() {
+        let calls = Rc::new(RefCell::new(vec![]));
+        let generator = MockInputGenerator {
+            calls: Rc::clone(&calls),
+        };
+        let grouper = ParityInputGrouper;
+        let builder = InputBuilder::new(generator, grouper);
+
+        let inputs = builder.build_inputs(2, 10, 20).unwrap();
+
+        let generated_seeds = calls.borrow().concat();
+        assert_eq!(generated_seeds.len(), 10);
+        assert_eq!(generated_seeds.first(), Some(&10));
+        assert_eq!(generated_seeds.last(), Some(&19));
+        assert_eq!(inputs.get("even").unwrap(), &vec![10, 12]);
+        assert_eq!(inputs.get("odd").unwrap(), &vec![11, 13]);
     }
 }

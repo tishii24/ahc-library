@@ -45,7 +45,7 @@ fn main() -> anyhow::Result<()> {
     info!("Generating input files...");
     const TRIAL_COUNT: u64 = 1_000;
     let mut input_groups = input_builder
-        .build_inputs(config.case_num_per_group, TRIAL_COUNT)?
+        .build_inputs(config.case_num_per_group, config.start_seed, TRIAL_COUNT)?
         .into_iter()
         .collect::<Vec<_>>();
     input_groups.sort_by_cached_key(|(group_id, _)| group_id.clone());

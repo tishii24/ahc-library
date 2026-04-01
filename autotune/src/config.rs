@@ -40,6 +40,8 @@ pub struct AutotuneConfig {
     pub optuna_config_path: PathBuf,
     #[serde(default = "default_case_num_per_group")]
     pub case_num_per_group: usize,
+    #[serde(default = "default_start_seed")]
+    pub start_seed: u64,
     pub input_fn: String,
 }
 
@@ -57,4 +59,7 @@ fn default_optuna_config_path() -> PathBuf {
 }
 fn default_case_num_per_group() -> usize {
     100
+}
+fn default_start_seed() -> u64 {
+    10_000
 }
