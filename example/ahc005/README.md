@@ -1,1 +1,0 @@
-- [https://img.atcoder.jp/ahc005/dc9ed10f037e2dd4b48ca255dbd470d9.zip?_gl=1*efc8d0*_ga*OTYyMDk5ODIzLjE2NTM5MTY0NDA.*_ga_RC512FD18N*czE3NTU0Mzg3NzMkbzk5MyRnMSR0MTc1NTQzODc3OSRqNTQkbDAkaDA.]

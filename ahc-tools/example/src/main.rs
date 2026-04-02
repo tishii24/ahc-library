@@ -1,5 +1,10 @@
+mod helper;
+
+use ahc_library::dumpln;
 use ahc_library::params_impl;
 use proconio::input;
+
+use crate::helper::f;
 
 params_impl! {
     n_coef: f64 = 3.9572835556899086,
@@ -41,4 +46,8 @@ fn main() {
     let x = n as i64 * params.n_coef as i64 + m as i64 * params.m_coef as i64;
 
     println!("{}", x);
+
+    dumpln!("hi");
+
+    f();
 }
