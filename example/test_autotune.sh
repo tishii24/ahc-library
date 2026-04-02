@@ -5,8 +5,8 @@ echo "Using study prefix: ${STUDY_PREFIX}"
 
 pip install optuna
 cargo install pahcer
-uv tool install --no-cache ../../ahc-utils --force
-cargo install --path ..
+uv tool install --no-cache ../ahc-utils --force
+cargo install --path ../ahc-tools
 
 # 1. params_impl!を生成する
 generate_impl --optuna_config_path optuna_config.yaml
