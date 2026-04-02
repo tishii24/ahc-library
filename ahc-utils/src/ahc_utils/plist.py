@@ -34,6 +34,11 @@ class Args:
         help="Parameter name to use for pivoting",
         default=None,
     )
+    is_maximize: bool = classopt.config(
+        "--maximize",
+        help="Whether higher scores are better (default: True, i.e. higher is better)",
+        default=True,
+    )
     n_rows: int = classopt.config(
         "--n_rows",
         short="-n",
@@ -214,7 +219,9 @@ def _render_row(
     return [make_line(i) for i in range(len(comment_lines))]
 
 
-def print_table(summary: pl.DataFrame, n_rows: int, max_comment_width: int) -> None:
+def print_table(
+    summary: pl.DataFrame, n_rows: int, max_comment_width: int, is_maximize: bool
+) -> None:
     score_cols = [
         c for c in summary.columns if c not in {"start_time", "tag", "comment"}
     ]
@@ -222,9 +229,14 @@ def print_table(summary: pl.DataFrame, n_rows: int, max_comment_width: int) -> N
     display_df = _build_display_df(summary, score_cols, n_rows)
 
     # 全summaryから各スコア列のベスト値を取得
-    best_vals: dict[str, float] = {
-        col: v for col in score_cols if (v := summary[col].max()) is not None  # type: ignore
-    }
+    if is_maximize:
+        best_vals: dict[str, float] = {
+            col: v for col in score_cols if (v := summary[col].max()) is not None  # type: ignore
+        }
+    else:
+        best_vals = {
+            col: v for col in score_cols if (v := summary[col].min()) is not None  # type: ignore
+        }
 
     rows = display_df.to_dicts()
     cols = display_df.columns
@@ -273,7 +285,7 @@ def main() -> None:
     )
     if args.pivot_parameter_name is not None:
         print(f"Pivoted by '{args.pivot_parameter_name}'")
-    print_table(summary, args.n_rows, args.max_comment_width)
+    print_table(summary, args.n_rows, args.max_comment_width, args.is_maximize)
 
 
 if __name__ == "__main__":

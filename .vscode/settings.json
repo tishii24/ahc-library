@@ -1,0 +1,7 @@
+{
+  "rust-analyzer.linkedProjects": [
+    "ahc-library/Cargo.toml",
+    "ahc-tools/Cargo.toml",
+    "ahc-tools/example/Cargo.toml"
+  ]
+}
