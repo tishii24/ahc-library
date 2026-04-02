@@ -59,7 +59,7 @@ impl IndexSet {
     }
 
     pub fn first(&self) -> Option<usize> {
-        self.que.get(0).copied()
+        self.que.first().copied()
     }
 
     pub fn get_random(&self, rnd: &mut impl Random) -> Option<usize> {

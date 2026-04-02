@@ -127,13 +127,13 @@ pub struct DiscreteSampler<T, R> {
 }
 
 impl<T: Copy, R: Random> DiscreteSampler<T, R> {
-    pub fn new(weight_values: &Vec<(usize, T)>, rnd: R) -> Self {
+    pub fn new(weight_values: &[(usize, T)], rnd: R) -> Self {
         let weight_sum = weight_values.iter().map(|(w, _)| *w).sum::<usize>();
         assert!(0 < weight_sum);
         assert!(weight_sum < 1_000_000);
         let mut buf = Vec::with_capacity(weight_sum);
         for &(w, val) in weight_values.iter() {
-            buf.extend(std::iter::repeat(val).take(w));
+            buf.extend(std::iter::repeat_n(val, w));
         }
         Self { buf, rnd }
     }

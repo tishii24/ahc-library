@@ -21,6 +21,12 @@ pub struct EasyArticulationChecker {
     connected: [bool; N],
 }
 
+impl Default for EasyArticulationChecker {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl EasyArticulationChecker {
     pub fn new() -> Self {
         Self {
