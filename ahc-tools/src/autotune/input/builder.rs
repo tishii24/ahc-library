@@ -3,7 +3,7 @@ use std::collections::{HashMap, HashSet};
 use anyhow::Result;
 use tracing::info;
 
-use crate::input::{generator::InputGenerator, grouper::InputGrouper};
+use crate::autotune::input::{generator::InputGenerator, grouper::InputGrouper};
 
 pub struct InputBuilder<GE: InputGenerator, GR: InputGrouper> {
     generator: GE,

@@ -1,4 +1,4 @@
-use crate::config::OptunaParameterConfig;
+use crate::common::config::OptunaParameterConfig;
 
 pub trait ParamFormatter {
     /// Optunaのパラメータ定義と、グループごとの最適パラメータを受け取って、最終的な出力形式に整形する
@@ -142,8 +142,6 @@ impl ParamFormatter for ParamsImplFormatter {
 
 #[cfg(test)]
 mod tests {
-    use crate::config::OptunaParameterConfig;
-
     use super::*;
 
     #[test]
