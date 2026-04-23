@@ -19,7 +19,7 @@ macro_rules! define_vec2 {
         $f1:ident,
         $f2:ident
     ) => {
-        #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+        #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
         pub struct $name<T>
         where
             T: num_traits::Num
@@ -104,7 +104,7 @@ macro_rules! define_vec2 {
             T: num_traits::Num + std::fmt::Display,
         {
             fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-                write!(f, "({}, {})", self.$f1, self.$f2)
+                write!(f, "({:2}, {:2})", self.$f1, self.$f2)
             }
         }
 
@@ -113,7 +113,7 @@ macro_rules! define_vec2 {
             T: num_traits::Num + std::fmt::Display,
         {
             fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-                write!(f, "({}, {})", self.$f1, self.$f2)
+                write!(f, "({:2}, {:2})", self.$f1, self.$f2)
             }
         }
 

@@ -6,3 +6,5 @@ python input.py
 
 plist -p n
 plist -p m
+
+echo "ok"

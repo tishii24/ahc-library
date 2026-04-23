@@ -21,6 +21,7 @@ generate_impl --optuna_config_path optuna_config.yaml
 pahcer-optuna --study_name ${STUDY_PREFIX}_p --optuna_config_path optuna_config.yaml
 generate_impl --optuna_config_path optuna_config.yaml --study_name ${STUDY_PREFIX}_p
 
+# autotuneを使う場合
 autotune --config_path autotune_config.yaml --optuna_study_prefix ${STUDY_PREFIX}
 
 optuna best-trial --study-name ${STUDY_PREFIX}_p --storage sqlite:///optuna.db -f json
@@ -28,3 +29,5 @@ optuna best-trial --study-name ${STUDY_PREFIX}_0 --storage sqlite:///optuna.db -
 optuna best-trial --study-name ${STUDY_PREFIX}_1 --storage sqlite:///optuna.db -f json
 optuna best-trial --study-name ${STUDY_PREFIX}_2 --storage sqlite:///optuna.db -f json
 optuna best-trial --study-name ${STUDY_PREFIX}_3 --storage sqlite:///optuna.db -f json
+
+echo "ok"

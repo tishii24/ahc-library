@@ -1,8 +1,10 @@
 pub mod helper {
+    use crate::dumpln;
     use crate::perf;
 
     pub fn f() {
         perf!("hi");
+        dumpln!("hello");
     }
 }
 
@@ -814,6 +816,12 @@ pub mod ahc_library {
                 connected: [bool; N],
             }
 
+            impl Default for EasyArticulationChecker {
+                fn default() -> Self {
+                    Self::new()
+                }
+            }
+
             impl EasyArticulationChecker {
                 pub fn new() -> Self {
                     Self {
@@ -936,7 +944,7 @@ pub mod ahc_library {
                 }
 
                 pub fn first(&self) -> Option<usize> {
-                    self.que.get(0).copied()
+                    self.que.first().copied()
                 }
 
                 pub fn get_random(&self, rnd: &mut impl Random) -> Option<usize> {
@@ -1659,13 +1667,13 @@ pub mod ahc_library {
             }
 
             impl<T: Copy, R: Random> DiscreteSampler<T, R> {
-                pub fn new(weight_values: &Vec<(usize, T)>, rnd: R) -> Self {
+                pub fn new(weight_values: &[(usize, T)], rnd: R) -> Self {
                     let weight_sum = weight_values.iter().map(|(w, _)| *w).sum::<usize>();
                     assert!(0 < weight_sum);
                     assert!(weight_sum < 1_000_000);
                     let mut buf = Vec::with_capacity(weight_sum);
                     for &(w, val) in weight_values.iter() {
-                        buf.extend(std::iter::repeat(val).take(w));
+                        buf.extend(std::iter::repeat_n(val, w));
                     }
                     Self { buf, rnd }
                 }
@@ -2068,7 +2076,7 @@ pub mod ahc_library {
 			        $f1:ident,
 			        $f2:ident
 			    ) => {
-			        #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+			        #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
 			        pub struct $name<T>
 			        where
 			            T: num_traits::Num
@@ -2153,7 +2161,7 @@ pub mod ahc_library {
 			            T: num_traits::Num + std::fmt::Display,
 			        {
 			            fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-			                write!(f, "({}, {})", self.$f1, self.$f2)
+			                write!(f, "({:2}, {:2})", self.$f1, self.$f2)
 			            }
 			        }
 
@@ -2162,7 +2170,7 @@ pub mod ahc_library {
 			            T: num_traits::Num + std::fmt::Display,
 			        {
 			            fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-			                write!(f, "({}, {})", self.$f1, self.$f2)
+			                write!(f, "({:2}, {:2})", self.$f1, self.$f2)
 			            }
 			        }
 
@@ -2205,4 +2213,3 @@ pub mod ahc_library {
         }
     }
 }
-

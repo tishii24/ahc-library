@@ -5,7 +5,7 @@ edition = "2024"
 
 [dependencies]
 ac-library-rs = "0.2.0"
-ahc-library = { version = "0.1.0", path = "../../ahc-library" }
+ahc-library = { version = "0.1.0", path = "../ahc-library" }
 fixedbitset = "0.5.7"
 itertools = "0.14.0"
 num-traits = "0.2.19"
