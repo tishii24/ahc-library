@@ -45,6 +45,8 @@ where
     temperature_scheduler: T,
     progress_scheduler: P,
     rnd: R,
+    iteration: usize,
+    adopted: usize,
 }
 
 impl<C, T, P, R> AnnealerScheduler<C, T, P, R>
@@ -61,14 +63,22 @@ where
             temperature_scheduler,
             progress_scheduler,
             rnd,
+            iteration: 0,
+            adopted: 0,
         }
     }
 
     pub fn adopt(&mut self, cur_score: f64, new_score: f64) -> bool {
         let progress = self.get_progress();
         let cur_temp = self.temperature_scheduler.get_temp(progress);
-        self.criterion
-            .adopt(cur_score, new_score, cur_temp, progress, &mut self.rnd)
+        let res = self
+            .criterion
+            .adopt(cur_score, new_score, cur_temp, progress, &mut self.rnd);
+        self.iteration += 1;
+        if res {
+            self.adopted += 1;
+        }
+        res
     }
 
     pub fn get_progress(&self) -> f64 {
@@ -97,6 +107,20 @@ where
         };
 
         matches!(self.status, AnnealerSchedulerStatus::InProgress)
+    }
+
+    #[inline]
+    pub fn iteration(&self) -> usize {
+        self.iteration
+    }
+
+    #[inline]
+    pub fn adopted(&self) -> usize {
+        self.adopted
+    }
+
+    pub fn print_status(&self) {
+        eprintln!("adopted: {:8}/{:8}", self.adopted, self.iteration);
     }
 }
 

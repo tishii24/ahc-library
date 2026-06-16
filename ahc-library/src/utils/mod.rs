@@ -1,12 +1,14 @@
 pub mod dump;
 pub mod env;
 pub mod fast_clear_array;
-pub mod grid;
-pub mod index_set;
+pub mod search;
+// pub mod grid;
+// pub mod index_set;
 pub mod ndarray;
-pub mod object_pool;
+// pub mod object_pool;
 pub mod param;
 pub mod random;
 pub mod stopwatch;
+pub mod table;
 pub mod time;
 pub mod v2;

@@ -1,26 +1,26 @@
-static mut START: f64 = -1.;
-static mut R: f64 = 1.;
+use std::time::Instant;
+
+static mut START: Option<Instant> = None;
+static mut R: f64 = 1.0;
 
 #[allow(unused)]
-/// r - scaling factor for elapsed time
 pub fn start_clock(r: f64) {
     unsafe {
         R = r;
+        START = Some(Instant::now());
     }
-    let _ = elapsed_seconds();
 }
 
 #[inline]
 #[allow(unused)]
 pub fn elapsed_seconds() -> f64 {
-    let t = std::time::SystemTime::now()
-        .duration_since(std::time::UNIX_EPOCH)
-        .unwrap()
-        .as_secs_f64();
     unsafe {
-        if START < 0. {
-            START = t;
+        match START {
+            Some(start) => start.elapsed().as_secs_f64() * R,
+            None => {
+                START = Some(Instant::now());
+                0.0
+            }
         }
-        (t - START) * R
     }
 }
