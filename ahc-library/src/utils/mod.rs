@@ -1,7 +1,6 @@
 pub mod dump;
 pub mod env;
 pub mod fast_clear_array;
-pub mod search;
 // pub mod grid;
 // pub mod index_set;
 pub mod ndarray;
