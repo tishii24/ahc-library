@@ -92,12 +92,12 @@ pub struct Prev<S: Copy, E: Copy> {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Path<S, E> {
+pub struct SearchPath<S, E> {
     pub states: Vec<S>,
     pub edges: Vec<E>,
 }
 
-impl<S, E> Path<S, E> {
+impl<S, E> SearchPath<S, E> {
     pub fn new() -> Self {
         Self {
             states: Vec::new(),
@@ -111,7 +111,7 @@ impl<S, E> Path<S, E> {
     }
 }
 
-impl<S, E> Default for Path<S, E> {
+impl<S, E> Default for SearchPath<S, E> {
     fn default() -> Self {
         Self::new()
     }
@@ -220,7 +220,7 @@ where
     ///
     /// 複数始点の場合、実際に到達元になった始点が `Path::states[0]` になる。
     /// `end` が未到達なら `buf` を空にして `false` を返す。
-    pub fn restore_path(&mut self, end: S, buf: &mut Path<S, E>) -> bool {
+    pub fn restore_path(&mut self, end: S, buf: &mut SearchPath<S, E>) -> bool {
         let end_index = self.index_of(end);
         buf.clear();
 
@@ -315,7 +315,7 @@ mod tests {
         assert_eq!(table.dist(blocked), None);
         assert!(table.is_reached(goal));
 
-        let mut path = Path::new();
+        let mut path = SearchPath::new();
         assert!(table.restore_path(goal, &mut path));
         assert_eq!(
             path.states,

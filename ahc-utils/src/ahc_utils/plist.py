@@ -39,6 +39,10 @@ class Args:
         help="Whether higher scores are better (default: True, i.e. higher is better)",
         default=True,
     )
+    minimize: bool = classopt.config(
+        help="Minimize absolute scores (relative scores are always higher-is-better)",
+        default=False,
+    )
     n_rows: int = classopt.config(
         "--n_rows",
         short="-n",
@@ -73,17 +77,18 @@ def load_cases(
             d = json.load(f)
             if case_count is not None and d["case_count"] != case_count:
                 continue
-            if not d["comment"]:
-                continue
 
             for case in d["cases"]:
                 data.append(
                     {
-                        "start_time": datetime.datetime.fromisoformat(d["start_time"]),
-                        "comment": d["comment"],
+                        "start_time": datetime.datetime.fromisoformat(d["start_time"])
+                        .astimezone()
+                        .replace(tzinfo=None),
+                        "comment": d["comment"] or "",
                         "tag": d["tag_name"] if d["tag_name"] else "",
                         "seed": f"{case['seed']:04}",
                         "score": case["score"],
+                        "error_message": case["error_message"],
                         "execution_time": case["execution_time"],
                     }
                 )
@@ -95,10 +100,21 @@ def build_summary(
     best_scores_df: pl.DataFrame,
     input_df: pl.DataFrame,
     pivot_parameter_name: str | None,
+    is_maximize: bool,
 ) -> pl.DataFrame:
+    relative_score = (
+        pl.col("score") / pl.col("best_score")
+        if is_maximize
+        else pl.col("best_score") / pl.col("score")
+    ) * 100.0
     df = (
         cases_df.join(best_scores_df, on="seed")
-        .with_columns((pl.col("score") / pl.col("best_score")).alias("rel"))
+        .with_columns(
+            pl.when(pl.col("error_message") == "")
+            .then(relative_score)
+            .otherwise(0.0)
+            .alias("rel")
+        )
         .sort("rel", descending=True)
         .join(input_df, on="seed")
     )
@@ -129,7 +145,7 @@ def build_summary(
 
 
 def _build_display_df(
-    summary: pl.DataFrame, score_cols: list[str], n_rows: int
+    summary: pl.DataFrame, score_cols: list[str], n_rows: int, is_maximize: bool
 ) -> pl.DataFrame:
     """最新n件 + 各スコア列でベストな行 (重複除去) を返す。先頭にbest行を付加。"""
     recent_times = set(
@@ -140,10 +156,12 @@ def _build_display_df(
     extra_times: set = set()
     extra_parts: list[pl.DataFrame] = []
     for col in score_cols:
-        col_max = summary[col].max()
-        if col_max is None:
+        col_best = (
+            summary[col].min() if col == "abs" and not is_maximize else summary[col].max()
+        )
+        if col_best is None:
             continue
-        best_row = summary.filter(pl.col(col) == col_max).head(1)
+        best_row = summary.filter(pl.col(col) == col_best).head(1)
         st = best_row["start_time"][0]
         if st not in recent_times and st not in extra_times:
             extra_parts.append(best_row)
@@ -161,11 +179,14 @@ def _build_display_df(
         pl.col("start_time").dt.strftime("%m/%d %H:%M").alias("start_time")
     )
 
-    # best行: 各スコア列の全体最大値を1行にまとめて先頭に挿入
+    # 相対スコアは常に大きいほど良く、絶対スコアだけ最適化方向に従う。
     str_tail = [c for c in summary.columns if c in {"tag", "comment"}]
     best_row_df = summary.select(
         [pl.lit("best").alias("start_time")]
-        + [pl.col(c).max() for c in score_cols]
+        + [
+            pl.col(c).min() if c == "abs" and not is_maximize else pl.col(c).max()
+            for c in score_cols
+        ]
         + [pl.lit("").alias(c) for c in str_tail]
     )
     return pl.concat([best_row_df, body_df])
@@ -178,7 +199,7 @@ def _fmt(col: str, score_cols: list[str], val: object) -> str:
     if val is None:
         return "None"
     assert isinstance(val, float)
-    return f"{val:.0f}" if col == "abs" else f"{val:.4f}"
+    return f"{val:.2f}" if col == "abs" else f"{val:.3f}"
 
 
 def _render_row(
@@ -226,17 +247,18 @@ def print_table(
         c for c in summary.columns if c not in {"start_time", "tag", "comment"}
     ]
 
-    display_df = _build_display_df(summary, score_cols, n_rows)
+    display_df = _build_display_df(summary, score_cols, n_rows, is_maximize)
 
-    # 全summaryから各スコア列のベスト値を取得
-    if is_maximize:
-        best_vals: dict[str, float] = {
-            col: v for col in score_cols if (v := summary[col].max()) is not None  # type: ignore
-        }
-    else:
-        best_vals = {
-            col: v for col in score_cols if (v := summary[col].min()) is not None  # type: ignore
-        }
+    # best行と同じ基準で色付けする。
+    best_vals: dict[str, float] = {
+        col: v
+        for col in score_cols
+        if (
+            v := summary[col].min()
+            if col == "abs" and not is_maximize
+            else summary[col].max()
+        ) is not None
+    }
 
     rows = display_df.to_dicts()
     cols = display_df.columns
@@ -280,12 +302,13 @@ def main() -> None:
     cases_df = load_cases(args.pahcer_path / PAHCER_JSON_DIR, args.case_count)
     input_df = pl.read_json(args.input_parameter_path)
 
+    is_maximize = args.is_maximize and not args.minimize
     summary = build_summary(
-        cases_df, best_scores_df, input_df, args.pivot_parameter_name
+        cases_df, best_scores_df, input_df, args.pivot_parameter_name, is_maximize
     )
     if args.pivot_parameter_name is not None:
         print(f"Pivoted by '{args.pivot_parameter_name}'")
-    print_table(summary, args.n_rows, args.max_comment_width, args.is_maximize)
+    print_table(summary, args.n_rows, args.max_comment_width, is_maximize)
 
 
 if __name__ == "__main__":

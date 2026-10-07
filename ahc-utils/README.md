@@ -108,8 +108,17 @@ list --pahcer_path ./tmp/pahcer --input_parameter_path ./tmp/input.json
 #### 表示内容
 
 - `abs`: 平均絶対スコア
-- `rel`: `best_score` で割った平均相対スコア
+- `rel`: pahcer と同じ百分率の平均相対スコア。最大化では `100 * score / best_score`、最小化では `100 * best_score / score`。相対スコアは常に大きいほど良い。
 - `tag`: pahcer のタグ
 - `comment`: 実行時コメント
 
 `-p/--parameter_name` を指定すると、その入力パラメータ値ごとの平均 `rel` も横持ちで表示します。
+
+### `plist` の最小化指定
+
+```sh
+plist --minimize -p total -c 100
+```
+
+`--minimize` を指定すると、絶対スコアは最小値、相対スコアと pivot 列は最大値をベストとして表示します。未指定の場合は最大化です。
+相対スコアは保存済み JSON の値ではなく、現在の `pahcer/best_scores.json` を基準に再計算します。不正な結果の相対スコアは 0 です。コメントが空の実行も表示対象になります。

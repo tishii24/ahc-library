@@ -30,6 +30,10 @@ pub fn bundle_solution(request: &BundleRequest) -> anyhow::Result<String> {
     solution = solution.replace("use ahc_library::", "use crate::ahc_library::");
 
     if let Some(ahc_library_path) = &request.ahc_library_path {
+        solution.push_str("\n");
+        solution.push_str(
+            "/// ahc-library: https://github.com/tishii24/ahc-library/tree/main/ahc-library",
+        );
         let library = expand_ahc_library(ahc_library_path)?;
         solution.push_str(&library);
     }
@@ -149,7 +153,7 @@ fn expand_ahc_library(ahc_library_path: &Path) -> anyhow::Result<String> {
 
         content.push_str("}\n");
     }
-    content.push_str("}\n");
+    content.push_str("}");
 
     Ok(content.replace("crate::", "crate::ahc_library::"))
 }
@@ -203,6 +207,9 @@ fn rewrite_root_macro_use(line: &str, is_main_file: bool) -> Option<String> {
 }
 
 fn extract_module_name(line: &str, prefix: &str) -> Option<String> {
+    if line.starts_with("//") {
+        return None;
+    }
     let start = line.find(prefix)? + prefix.len();
     let rest = &line[start..];
     let end = rest.find(';')?;

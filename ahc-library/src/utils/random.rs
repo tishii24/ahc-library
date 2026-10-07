@@ -15,6 +15,15 @@ pub trait Random {
     }
 
     #[inline(always)]
+    fn choose<'a, T>(&mut self, v: &'a [T]) -> Option<&'a T> {
+        if v.is_empty() {
+            return None;
+        }
+        let idx = self.gen_index(v.len());
+        Some(&v[idx])
+    }
+
+    #[inline(always)]
     fn gen_index(&mut self, len: usize) -> usize {
         debug_assert!(len as u64 <= 1 << 32);
         ((len as u64 * self._next() as u64) >> 32) as usize
